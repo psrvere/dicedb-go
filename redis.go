@@ -736,6 +736,19 @@ func (c *Client) pubSub() *PubSub {
 	return pubsub
 }
 
+func (c *Client) qwatch() *QWatch {
+	qwatch := &QWatch{
+		opt: c.opt,
+
+		newConn: func(ctx context.Context, query string, args ...interface{}) (*pool.Conn, error) {
+			return c.newConn(ctx)
+		},
+		closeConn: c.connPool.CloseConn,
+	}
+	qwatch.init()
+	return qwatch
+}
+
 // Subscribe subscribes the client to the specified channels.
 // Channels can be omitted to create empty subscription.
 // Note that this method does not wait on a response from Redis, so the
@@ -768,6 +781,12 @@ func (c *Client) Subscribe(ctx context.Context, channels ...string) *PubSub {
 		_ = pubsub.Subscribe(ctx, channels...)
 	}
 	return pubsub
+}
+
+func (c *Client) QWatch(ctx context.Context, query string, args ...interface{}) *QWatch {
+	qwatch := c.qwatch()
+	_ = qwatch.WatchQuery(ctx, query, args...)
+	return qwatch
 }
 
 // PSubscribe subscribes the client to the given patterns.
