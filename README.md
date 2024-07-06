@@ -1,7 +1,7 @@
 # Redis client for Go
 
 [![build workflow](https://github.com/redis/go-redis/actions/workflows/build.yml/badge.svg)](https://github.com/redis/go-redis/actions)
-[![PkgGoDev](https://pkg.go.dev/badge/github.com/redis/go-redis/v9)](https://pkg.go.dev/github.com/redis/go-redis/v9?tab=doc)
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/dicedb/go-dice)](https://pkg.go.dev/github.com/dicedb/go-dice?tab=doc)
 [![Documentation](https://img.shields.io/badge/redis-documentation-informational)](https://redis.uptrace.dev/)
 [![Chat](https://discordapp.com/api/guilds/752070105847955518/widget.png)](https://discord.gg/rWtp5Aj)
 
@@ -36,8 +36,8 @@
 
 - [Discussions](https://github.com/redis/go-redis/discussions)
 - [Chat](https://discord.gg/rWtp5Aj)
-- [Reference](https://pkg.go.dev/github.com/redis/go-redis/v9)
-- [Examples](https://pkg.go.dev/github.com/redis/go-redis/v9#pkg-examples)
+- [Reference](https://pkg.go.dev/github.com/dicedb/go-dice)
+- [Examples](https://pkg.go.dev/github.com/dicedb/go-dice#pkg-examples)
 
 ## Ecosystem
 
@@ -75,7 +75,7 @@ go mod init github.com/my/repo
 Then install go-redis/**v9**:
 
 ```shell
-go get github.com/redis/go-redis/v9
+go get github.com/dicedb/go-dice
 ```
 
 ## Quickstart
@@ -85,7 +85,7 @@ import (
     "context"
     "fmt"
 
-    "github.com/redis/go-redis/v9"
+    "github.com/dicedb/go-dice"
 )
 
 var ctx = context.Background()
@@ -143,7 +143,7 @@ to this specification.
 
 ```go
 import (
-    "github.com/redis/go-redis/v9"
+    "github.com/dicedb/go-dice"
 )
 
 func ExampleClient() *redis.Client {
@@ -158,18 +158,23 @@ func ExampleClient() *redis.Client {
 
 ```
 
-
 ### Advanced Configuration
 
-go-redis supports extending the client identification phase to allow projects to send their own custom client identification.
+go-redis supports extending the client identification phase to allow projects to send their own
+custom client identification.
 
 #### Default Client Identification
 
-By default, go-redis automatically sends the client library name and version during the connection process. This feature is available in redis-server as of version 7.2. As a result, the command is "fire and forget", meaning it should fail silently, in the case that the redis server does not support this feature.
+By default, go-redis automatically sends the client library name and version during the connection
+process. This feature is available in redis-server as of version 7.2. As a result, the command is
+"fire and forget", meaning it should fail silently, in the case that the redis server does not
+support this feature.
 
 #### Disabling Identity Verification
 
-When connection identity verification is not required or needs to be explicitly disabled, a `DisableIndentity` configuration option exists. In V10 of this library, `DisableIndentity` will become `DisableIdentity` in order to fix the associated typo.
+When connection identity verification is not required or needs to be explicitly disabled, a
+`DisableIndentity` configuration option exists. In V10 of this library, `DisableIndentity` will
+become `DisableIdentity` in order to fix the associated typo.
 
 To disable verification, set the `DisableIndentity` option to `true` in the Redis client options:
 

@@ -10,7 +10,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 
-	"github.com/redis/go-redis/v9"
+	"github.com/dicedb/go-dice"
 )
 
 // InstrumentMetrics starts reporting OpenTelemetry Metrics.

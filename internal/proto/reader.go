@@ -9,7 +9,7 @@ import (
 	"math/big"
 	"strconv"
 
-	"github.com/redis/go-redis/v9/internal/util"
+	"github.com/dicedb/go-dice/internal/util"
 )
 
 // redis resp protocol data type.

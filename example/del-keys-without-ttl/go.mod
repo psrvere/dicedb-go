@@ -2,10 +2,10 @@ module github.com/redis/go-redis/example/del-keys-without-ttl
 
 go 1.18
 
-replace github.com/redis/go-redis/v9 => ../..
+replace github.com/dicedb/go-dice => ../..
 
 require (
-	github.com/redis/go-redis/v9 v9.5.3
+	github.com/dicedb/go-dice v9.5.3
 	go.uber.org/zap v1.24.0
 )
 

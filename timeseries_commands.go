@@ -4,7 +4,7 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/redis/go-redis/v9/internal/proto"
+	"github.com/dicedb/go-dice/internal/proto"
 )
 
 type TimeseriesCmdable interface {

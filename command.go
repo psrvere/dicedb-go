@@ -11,10 +11,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/redis/go-redis/v9/internal"
-	"github.com/redis/go-redis/v9/internal/hscan"
-	"github.com/redis/go-redis/v9/internal/proto"
-	"github.com/redis/go-redis/v9/internal/util"
+	"github.com/dicedb/go-dice/internal"
+	"github.com/dicedb/go-dice/internal/hscan"
+	"github.com/dicedb/go-dice/internal/proto"
+	"github.com/dicedb/go-dice/internal/util"
 )
 
 type Cmder interface {

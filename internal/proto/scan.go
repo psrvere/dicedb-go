@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/redis/go-redis/v9/internal/util"
+	"github.com/dicedb/go-dice/internal/util"
 )
 
 // Scan parses bytes `b` to `v` with appropriate type.

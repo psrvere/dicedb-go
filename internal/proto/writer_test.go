@@ -11,8 +11,8 @@ import (
 	. "github.com/bsm/ginkgo/v2"
 	. "github.com/bsm/gomega"
 
-	"github.com/redis/go-redis/v9/internal/proto"
-	"github.com/redis/go-redis/v9/internal/util"
+	"github.com/dicedb/go-dice/internal/proto"
+	"github.com/dicedb/go-dice/internal/util"
 )
 
 type MyType struct{}

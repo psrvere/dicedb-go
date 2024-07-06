@@ -1,4 +1,4 @@
-module github.com/redis/go-redis/v9
+module github.com/dicedb/go-dice
 
 go 1.18
 
