@@ -783,10 +783,8 @@ func (c *Client) Subscribe(ctx context.Context, channels ...string) *PubSub {
 	return pubsub
 }
 
-func (c *Client) QWatch(ctx context.Context, query string, args ...interface{}) *QWatch {
-	qwatch := c.qwatch()
-	_ = qwatch.WatchQuery(ctx, query, args...)
-	return qwatch
+func (c *Client) QWatch(ctx context.Context) *QWatch {
+	return c.qwatch()
 }
 
 // PSubscribe subscribes the client to the given patterns.
