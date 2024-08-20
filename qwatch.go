@@ -18,6 +18,8 @@ type KV struct {
 }
 
 type QMessage struct {
+	Command string
+	Query   string
 	Updates []KV
 }
 
@@ -188,66 +190,98 @@ func (q *QWatch) watchQuery(ctx context.Context, redisCmd string, query string, 
 func (q *QWatch) newQMessage(reply interface{}) (interface{}, error) {
 	switch reply := reply.(type) {
 	case string:
-		return &Pong{
-			Payload: reply,
-		}, nil
+		return &Pong{Payload: reply}, nil
 	case []interface{}:
 		if len(reply) == 0 {
 			return nil, fmt.Errorf("redis: empty qwatch message")
 		}
 
-		kind, ok := reply[0].(string)
-		if !ok {
-			// If the first element is not a string, assume it's a qwatch message
-			return q.processQWatchMessage(reply)
+		if kind, ok := reply[0].(string); ok {
+			switch kind {
+			case "qwatch":
+				return q.processQWatchMessage(reply)
+			case "pong":
+				return parsePongMessage(reply)
+			default:
+				return nil, fmt.Errorf("redis: unsupported qwatch message: %q", kind)
+			}
 		}
 
-		switch kind {
-		case "qwatch":
-			return q.processQWatchMessage(reply[1:])
-		case "pong":
-			if len(reply) < 2 {
-				return nil, fmt.Errorf("redis: invalid pong message format")
-			}
-			payload, ok := reply[1].(string)
-			if !ok {
-				return nil, fmt.Errorf("redis: invalid pong payload type")
-			}
-			return &Pong{
-				Payload: payload,
-			}, nil
-		default:
-			return nil, fmt.Errorf("redis: unsupported qwatch message: %q", kind)
-		}
+		// If the first element is not a string, assume it's a qwatch message
+		return q.processQWatchMessage(reply)
+
 	default:
-		return nil, fmt.Errorf("redis: unsupported qwatch message: %#v", reply)
+		return nil, fmt.Errorf("redis: unsupported qwatch message type: %T", reply)
 	}
 }
 
-func (q *QWatch) processQWatchMessage(payload interface{}) (*QMessage, error) {
-	updates := make([]KV, 0)
-
-	switch data := payload.(type) {
-	case []interface{}:
-		for _, update := range data {
-			kv, ok := update.([]interface{})
-			if !ok || len(kv) != 2 {
-				return nil, fmt.Errorf("redis: invalid key-value pair in qwatch message")
-			}
-			key, ok := kv[0].(string)
-			if !ok {
-				return nil, fmt.Errorf("redis: invalid key type in qwatch message")
-			}
-			value := kv[1]
-			updates = append(updates, KV{Key: key, Value: value})
-		}
-	default:
-		return nil, fmt.Errorf("redis: unsupported qwatch message payload: %T", payload)
+func parsePongMessage(reply []interface{}) (*Pong, error) {
+	if len(reply) < 2 {
+		return nil, fmt.Errorf("redis: invalid pong message format")
 	}
 
-	return &QMessage{
-		Updates: updates,
-	}, nil
+	payload, ok := reply[1].(string)
+	if !ok {
+		return nil, fmt.Errorf("redis: invalid pong payload type")
+	}
+
+	return &Pong{Payload: payload}, nil
+}
+
+func (q *QWatch) processQWatchMessage(payload interface{}) (*QMessage, error) {
+	data, ok := payload.([]interface{})
+	if !ok || len(data) < 3 {
+		return nil, fmt.Errorf("redis: invalid qwatch message format")
+	}
+
+	updates, err := parseUpdates(data[2])
+	if err != nil {
+		return nil, err
+	}
+
+	return &QMessage{Command: data[0].(string), Query: data[1].(string), Updates: updates}, nil
+}
+
+func parseUpdates(data interface{}) ([]KV, error) {
+	updateList, ok := data.([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("redis: invalid update list format")
+	}
+
+	updates := make([]KV, 0, len(updateList))
+	for _, update := range updateList {
+		kv, err := parseKeyValuePair(update)
+		if err != nil {
+			return nil, err
+		}
+		updates = append(updates, kv)
+	}
+
+	return updates, nil
+}
+
+func parseKeyValuePair(update interface{}) (KV, error) {
+	pair, ok := update.([]interface{})
+	if !ok || len(pair) != 2 {
+		return KV{}, fmt.Errorf("redis: invalid key-value pair format")
+	}
+
+	key, ok := pair[0].(string)
+	if !ok {
+		return KV{}, fmt.Errorf("redis: invalid key type")
+	}
+
+	value := castValue(pair[1])
+	return KV{Key: key, Value: value}, nil
+}
+
+func castValue(value interface{}) interface{} {
+	switch v := value.(type) {
+	case string, int64:
+		return v
+	default:
+		return value
+	}
 }
 
 // ReceiveTimeout acts like Receive but returns an error if message
