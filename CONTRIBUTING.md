@@ -1,101 +1,95 @@
-# Contributing
+DiceDB welcomes your contributions! Whether you're fixing bugs, adding new features, or improving the documentation, your help is valuable.
 
-## Introduction
+To maintain the project's quality and consistency, please follow these guidelines:
 
-We appreciate your interest in considering contributing to go-redis.
-Community contributions mean a lot to us.
+- Keep the code consistent: Use the same coding style and conventions throughout the project.
+- Keep the git repository consistent: Follow proper git practices to avoid conflicts and ensure a clean history.
 
-## Contributions we need
+## Create a branch for your change
 
-You may already know how you'd like to contribute, whether it's a fix for a bug you
-encountered, or a new feature your team wants to use.
+```text
+$ cd dice
+#
+# ensure you are starting from the latest code base
+# the following steps, ensure your fork's (origin's) master is up-to-date
+#
+$ git fetch upstream
+$ git checkout master
+$ git merge upstream/master
+# create a branch for your issue
+$ git checkout -b <your issue branch>
+```
 
-If you don't know where to start, consider improving
-documentation, bug triaging, and writing tutorials are all examples of
-helpful contributions that mean less work for you.
+Make the necessary changes. If the changes you plan to make are too big, make sure you break them down into smaller tasks.
 
-## Your First Contribution
+## Making the changes
 
-Unsure where to begin contributing? You can start by looking through
-[help-wanted
-issues](https://github.com/redis/go-redis/issues?q=is%3Aopen+is%3Aissue+label%3ahelp-wanted).
+Follow the best practices when you are making changes.
 
-Never contributed to open source before? Here are a couple of friendly
-tutorials:
+### Code documentation
 
--   <http://makeapullrequest.com/>
--   <http://www.firsttimersonly.com/>
+Please ensure your code is adequately documented. Some things to consider for documentation:
 
-## Getting Started
+- Always include struct, module, and package level docs. We are looking for information about what functionality is provided, what state is maintained, whether there are concurrency/thread-safety concerns and any exceptional behavior that the class might exhibit.
+- Document public methods and their parameters.
 
-Here's how to get started with your code contribution:
+## Creating a Pull Request (PR)
 
-1.  Create your own fork of go-redis
-2.  Do the changes in your fork
-3.  If you need a development environment, run `make test`. Note: this clones and builds the latest release of [redis](https://redis.io). You also need a redis-stack-server docker, in order to run the capabilities tests. This can be started by running:
-    ```docker run -p 6379:6379 -it redis/redis-stack-server:edge```
-4.  While developing, make sure the tests pass by running `make tests`
-5.  If you like the change and think the project could use it, send a
-    pull request
+- **Verify code-style**
+- **Push changes and create a PR for review**
 
-To see what else is part of the automation, run `invoke -l`
+  Commit your changes with a meaningful commit message.
+
+```text
+$ git add <files required for the change>
+$ git commit -m "Meaningful oneliner for the change"
+$ git push origin <your issue branch>
+```
+- Once you receive comments on GitHub on your changes, be sure to respond to them on GitHub and address the concerns. If any discussions happen offline for the changes in question, make sure to capture the outcome of the discussion, so others can follow along as well.
+
+  It is possible that while your change is being reviewed, other changes were made to the master branch. Be sure to pull rebase your change on the new changes thus:
+
+```text
+# commit your changes
+$ git add <updated files>
+$ git commit -m "Meaningful message for the update"
+# pull new changes
+$ git checkout master
+$ git merge upstream/master
+$ git checkout <your issue branch>
+$ git rebase master
+
+At this time, if rebase flags any conflicts, resolve the conflicts and follow the instructions provided by the rebase command.
+
+Run additional tests/validations for the new changes and update the PR by pushing your changes:
+```
+
+```text
+git push origin <your issue branch>
+```
+
+- When you have addressed all comments and have an approved PR, one of the committers can merge your PR.
+- After your change is merged, check to see if any documentation needs to be updated. If so, create a PR for documentation.
+
+## Timeline for working on Issues
+
+### Issues
+
+- Assigned issues imply intent to work on them.
+- Can't work on it? Unassigned yourself to allow others to contribute.
+- Provide updates on long-running issues to show progress.
+- Inactive issues may be unassigned after a reasonable period.
+
+### Pull Requests (PRs)
+
+- We appreciate timely completion of PRs.
+- If a PR becomes inactive, we may close it.
+- Need more time? Just let us know in the comments.
+
+# Contribution Guidelines
+
+Before you begin to contribute, make sure you have reviewed [Dev Environment Setup](https://github.com/dicedb/dice/blob/master/README.md) sections and that you have created your own fork of the source code.
 
 ## Testing
 
 Call `make test` to run all tests, including linters.
-
-Continuous Integration uses these same wrappers to run all of these
-tests against multiple versions of python. Feel free to test your
-changes against all the go versions supported, as declared by the
-[build.yml](./.github/workflows/build.yml) file.
-
-### Troubleshooting
-
-If you get any errors when running `make test`, make sure
-that you are using supported versions of Docker and go.
-
-## How to Report a Bug
-
-### Security Vulnerabilities
-
-**NOTE**: If you find a security vulnerability, do NOT open an issue.
-Email [Redis Open Source (<oss@redis.com>)](mailto:oss@redis.com) instead.
-
-In order to determine whether you are dealing with a security issue, ask
-yourself these two questions:
-
--   Can I access something that's not mine, or something I shouldn't
-    have access to?
--   Can I disable something for other people?
-
-If the answer to either of those two questions are *yes*, then you're
-probably dealing with a security issue. Note that even if you answer
-*no*  to both questions, you may still be dealing with a security
-issue, so if you're unsure, just email [us](mailto:oss@redis.com).
-
-### Everything Else
-
-When filing an issue, make sure to answer these five questions:
-
-1.  What version of go-redis are you using?
-2.  What version of redis are you using?
-3.  What did you do?
-4.  What did you expect to see?
-5.  What did you see instead?
-
-## Suggest a feature or enhancement
-
-If you'd like to contribute a new feature, make sure you check our
-issue list to see if someone has already proposed it. Work may already
-be underway on the feature you want or we may have rejected a
-feature like it already.
-
-If you don't see anything, open a new issue that describes the feature
-you would like and how it should work.
-
-## Code review process
-
-The core team regularly looks at pull requests. We will provide
-feedback as soon as possible. After receiving our feedback, please respond
-within two weeks. After that time, we may close your PR if it isn't
-showing any activity.
