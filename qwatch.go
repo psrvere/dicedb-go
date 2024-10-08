@@ -2,6 +2,7 @@ package redis
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -12,11 +13,13 @@ import (
 	"github.com/dicedb/go-dice/internal/proto"
 )
 
+// KV represents a key-value pair.
 type KV struct {
 	Key   string
 	Value interface{}
 }
 
+// QMessage represents a message received via QWATCH.
 type QMessage struct {
 	Command string
 	Query   string
@@ -27,10 +30,10 @@ func (m *QMessage) String() string {
 	return fmt.Sprintf("QMessage(%v)", m.Updates)
 }
 
-// QWatch implements QWATCH commands. QMessage receiving is NOT safe
-// for concurrent use by multiple goroutines.
+// QWatch implements the QWATCH command, which allows clients to watch queries.
+// QMessage receiving is NOT safe for concurrent use by multiple goroutines.
 //
-// QWatch automatically reconnects to Redis Server and re-subscribes
+// QWatch automatically reconnects to the Redis server and re-subscribes
 // to the queries in case of network errors.
 type QWatch struct {
 	opt *Options
@@ -91,12 +94,14 @@ func (q *QWatch) conn(ctx context.Context, query string, args ...interface{}) (*
 	return cn, nil
 }
 
+// writeCmd writes a command to the connection.
 func (q *QWatch) writeCmd(ctx context.Context, cn *pool.Conn, cmd Cmder) error {
 	return cn.WithWriter(context.Background(), q.opt.WriteTimeout, func(wr *proto.Writer) error {
 		return writeCmd(wr, cmd)
 	})
 }
 
+// resubscribe re-subscribes to all queries on a new connection.
 func (q *QWatch) resubscribe(ctx context.Context, cn *pool.Conn) error {
 	var firstErr error
 
@@ -110,6 +115,7 @@ func (q *QWatch) resubscribe(ctx context.Context, cn *pool.Conn) error {
 	return firstErr
 }
 
+// _watchQuery sends a QWATCH command to the Redis server.
 func (q *QWatch) _watchQuery(ctx context.Context, cn *pool.Conn, redisCmd string, query string, args ...interface{}) error {
 	cmdArgs := make([]interface{}, 0, 2+len(args))
 	cmdArgs = append(cmdArgs, redisCmd, query)
@@ -133,11 +139,15 @@ func (q *QWatch) releaseConn(ctx context.Context, cn *pool.Conn, err error, allo
 	}
 }
 
+// reconnect closes the current connection and attempts to establish a new one.
+// It must be called with the mutex locked.
 func (q *QWatch) reconnect(ctx context.Context, reason error) {
 	_ = q.closeTheCn(reason)
 	_, _ = q.conn(ctx, "")
 }
 
+// closeTheCn closes the current connection.
+// It must be called with the mutex locked.
 func (q *QWatch) closeTheCn(reason error) error {
 	if q.cn == nil {
 		return nil
@@ -150,6 +160,7 @@ func (q *QWatch) closeTheCn(reason error) error {
 	return err
 }
 
+// Close closes the QWatch instance.
 func (q *QWatch) Close() error {
 	q.mu.Lock()
 	defer q.mu.Unlock()
@@ -163,20 +174,27 @@ func (q *QWatch) Close() error {
 	return q.closeTheCn(pool.ErrClosed)
 }
 
-// Subscribes the client to the specified query. It returns an error if
-// subscription fails.
+// WatchQuery subscribes the client to the specified query.
+// It returns an error if subscription fails.
 func (q *QWatch) WatchQuery(ctx context.Context, query string, args ...interface{}) error {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
 	err := q.watchQuery(ctx, "QWATCH", query, args...)
+	if err != nil {
+		return err
+	}
+
 	if q.queries == nil {
 		q.queries = make(map[string][]interface{})
 	}
 	q.queries[query] = args
-	return err
+
+	return nil
 }
 
+// watchQuery sends the QWATCH command to the server.
+// It must be called with the mutex locked.
 func (q *QWatch) watchQuery(ctx context.Context, redisCmd string, query string, args ...interface{}) error {
 	cn, err := q.conn(ctx, query, args...)
 	if err != nil {
@@ -187,6 +205,8 @@ func (q *QWatch) watchQuery(ctx context.Context, redisCmd string, query string, 
 	q.releaseConn(ctx, cn, err, false)
 	return err
 }
+
+// newQMessage processes the reply from the Redis server and constructs a message.
 func (q *QWatch) newQMessage(reply interface{}) (interface{}, error) {
 	switch reply := reply.(type) {
 	case string:
@@ -196,25 +216,25 @@ func (q *QWatch) newQMessage(reply interface{}) (interface{}, error) {
 			return nil, fmt.Errorf("redis: empty qwatch message")
 		}
 
-		if kind, ok := reply[0].(string); ok {
-			switch kind {
-			case "qwatch":
-				return q.processQWatchMessage(reply)
-			case "pong":
-				return parsePongMessage(reply)
-			default:
-				return nil, fmt.Errorf("redis: unsupported qwatch message: %q", kind)
-			}
+		kind, ok := reply[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("redis: expected message type as string, got %T", reply[0])
 		}
 
-		// If the first element is not a string, assume it's a qwatch message
-		return q.processQWatchMessage(reply)
-
+		switch kind {
+		case "qwatch":
+			return q.processQWatchMessage(reply)
+		case "pong":
+			return parsePongMessage(reply)
+		default:
+			return nil, fmt.Errorf("redis: unsupported qwatch message: %q", kind)
+		}
 	default:
 		return nil, fmt.Errorf("redis: unsupported qwatch message type: %T", reply)
 	}
 }
 
+// parsePongMessage parses a PONG message from the server.
 func parsePongMessage(reply []interface{}) (*Pong, error) {
 	if len(reply) < 2 {
 		return nil, fmt.Errorf("redis: invalid pong message format")
@@ -228,24 +248,37 @@ func parsePongMessage(reply []interface{}) (*Pong, error) {
 	return &Pong{Payload: payload}, nil
 }
 
-func (q *QWatch) processQWatchMessage(payload interface{}) (*QMessage, error) {
-	data, ok := payload.([]interface{})
-	if !ok || len(data) < 3 {
+// processQWatchMessage parses a QWATCH message from the server.
+func (q *QWatch) processQWatchMessage(payload []interface{}) (*QMessage, error) {
+	if len(payload) < 3 {
 		return nil, fmt.Errorf("redis: invalid qwatch message format")
 	}
 
-	updates, err := parseUpdates(data[2])
+	// Ensure command is a string
+	command, ok := payload[0].(string)
+	if !ok {
+		return nil, fmt.Errorf("redis: invalid command in qwatch message, expected string, got %T", payload[0])
+	}
+
+	// Ensure query is a string
+	query, ok := payload[1].(string)
+	if !ok {
+		return nil, fmt.Errorf("redis: invalid query in qwatch message, expected string, got %T", payload[1])
+	}
+
+	updates, err := parseUpdates(payload[2])
 	if err != nil {
 		return nil, err
 	}
 
-	return &QMessage{Command: data[0].(string), Query: data[1].(string), Updates: updates}, nil
+	return &QMessage{Command: command, Query: query, Updates: updates}, nil
 }
 
+// parseUpdates parses the updates from the QWATCH message.
 func parseUpdates(data interface{}) ([]KV, error) {
 	updateList, ok := data.([]interface{})
 	if !ok {
-		return nil, fmt.Errorf("redis: invalid update list format")
+		return nil, fmt.Errorf("redis: invalid update list format, expected []interface{}, got %T", data)
 	}
 
 	updates := make([]KV, 0, len(updateList))
@@ -260,32 +293,27 @@ func parseUpdates(data interface{}) ([]KV, error) {
 	return updates, nil
 }
 
+// parseKeyValuePair parses a key-value pair from the updates.
 func parseKeyValuePair(update interface{}) (KV, error) {
 	pair, ok := update.([]interface{})
 	if !ok || len(pair) != 2 {
 		return KV{}, fmt.Errorf("redis: invalid key-value pair format")
 	}
 
+	// Ensure key is a string
 	key, ok := pair[0].(string)
 	if !ok {
 		return KV{}, fmt.Errorf("redis: invalid key type")
 	}
 
-	value := castValue(pair[1])
+	// Value can be any type
+	value := pair[1]
+
 	return KV{Key: key, Value: value}, nil
 }
 
-func castValue(value interface{}) interface{} {
-	switch v := value.(type) {
-	case string, int64:
-		return v
-	default:
-		return value
-	}
-}
-
-// ReceiveTimeout acts like Receive but returns an error if message
-// is not received in time. This is low-level API and in most cases
+// ReceiveTimeout acts like Receive but returns an error if a message
+// is not received in time. This is a low-level API and in most cases
 // Channel should be used instead.
 func (q *QWatch) ReceiveTimeout(ctx context.Context, timeout time.Duration) (interface{}, error) {
 	if q.cmd == nil {
@@ -311,13 +339,13 @@ func (q *QWatch) ReceiveTimeout(ctx context.Context, timeout time.Duration) (int
 }
 
 // Receive returns a message as a QMessage, Pong, or error.
-// This is low-level API and in most cases Channel should be used instead.
+// This is a low-level API and in most cases Channel should be used instead.
 func (q *QWatch) Receive(ctx context.Context) (interface{}, error) {
 	return q.ReceiveTimeout(ctx, 0)
 }
 
-// ReceiveQMessage returns a QMessage or error ignoring Pong
-// messages. This is low-level API and in most cases Channel should be used instead.
+// ReceiveQMessage returns a QMessage or error, ignoring Pong messages.
+// This is a low-level API and in most cases Channel should be used instead.
 func (q *QWatch) ReceiveQMessage(ctx context.Context) (*QMessage, error) {
 	for {
 		msg, err := q.Receive(ctx)
@@ -331,8 +359,7 @@ func (q *QWatch) ReceiveQMessage(ctx context.Context) (*QMessage, error) {
 		case *QMessage:
 			return msg, nil
 		default:
-			err := fmt.Errorf("redis: unknown message: %T", msg)
-			return nil, err
+			return nil, fmt.Errorf("redis: unknown message type: %T", msg)
 		}
 	}
 }
@@ -346,8 +373,8 @@ func (q *QWatch) getContext() context.Context {
 
 // Channel returns a Go channel for concurrently receiving messages.
 // The channel is closed together with the QWatch. If the Go channel
-// is blocked full for 1 minute the message is dropped.
-// Receive* APIs can not be used after the channel is created.
+// is blocked full for 1 minute, the message is dropped.
+// Receive* APIs cannot be used after the channel is created.
 //
 // go-redis periodically sends ping messages to test connection health
 // and re-subscribes if ping cannot be received for 1 minute.
@@ -363,6 +390,7 @@ func (q *QWatch) Channel(opts ...QChannelOption) <-chan *QMessage {
 	return q.msgCh.msgCh
 }
 
+// qChannel handles message delivery over a Go channel.
 type qChannel struct {
 	qwatch *QWatch
 
@@ -375,10 +403,10 @@ type qChannel struct {
 	checkInterval   time.Duration
 }
 
+// QChannelOption configures a qChannel.
 type QChannelOption func(c *qChannel)
 
-// WithQChannelSize specifies the Go chan size that is used to buffer incoming messages.
-//
+// WithQChannelSize specifies the size of the Go channel buffer.
 // The default is 100 messages.
 func WithQChannelSize(size int) QChannelOption {
 	return func(c *qChannel) {
@@ -387,9 +415,8 @@ func WithQChannelSize(size int) QChannelOption {
 }
 
 // WithQChannelHealthCheckInterval specifies the health check interval.
-// PubSub will ping Redis Server if it does not receive any messages within the interval.
+// QWatch will ping the Redis server if it does not receive any messages within the interval.
 // To disable health check, use zero interval.
-//
 // The default is 3 seconds.
 func WithQChannelHealthCheckInterval(d time.Duration) QChannelOption {
 	return func(c *qChannel) {
@@ -397,9 +424,8 @@ func WithQChannelHealthCheckInterval(d time.Duration) QChannelOption {
 	}
 }
 
-// WithQChannelSendTimeout specifies the channel send timeout after which
-// the message is dropped.
-//
+// WithQChannelSendTimeout specifies the timeout for sending messages to the Go channel.
+// If the timeout is exceeded, the message is dropped.
 // The default is 60 seconds.
 func WithQChannelSendTimeout(d time.Duration) QChannelOption {
 	return func(c *qChannel) {
@@ -407,10 +433,10 @@ func WithQChannelSendTimeout(d time.Duration) QChannelOption {
 	}
 }
 
+// newWatchChannel creates a new qChannel.
 func newWatchChannel(qwatch *QWatch, opts ...QChannelOption) *qChannel {
 	c := &qChannel{
-		qwatch: qwatch,
-
+		qwatch:          qwatch,
 		chanSize:        100,
 		chanSendTimeout: time.Minute,
 		checkInterval:   3 * time.Second,
@@ -424,26 +450,28 @@ func newWatchChannel(qwatch *QWatch, opts ...QChannelOption) *qChannel {
 	return c
 }
 
-func (c *QWatch) Ping(ctx context.Context, payload ...string) error {
+// Ping sends a PING command to the server to check connection health.
+func (q *QWatch) Ping(ctx context.Context, payload ...string) error {
 	args := []interface{}{"ping"}
 	if len(payload) == 1 {
 		args = append(args, payload[0])
 	}
 	cmd := NewCmd(ctx, args...)
 
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	q.mu.Lock()
+	defer q.mu.Unlock()
 
-	cn, err := c.conn(ctx, "")
+	cn, err := q.conn(ctx, "")
 	if err != nil {
 		return err
 	}
 
-	err = c.writeCmd(ctx, cn, cmd)
-	c.releaseConn(ctx, cn, err, false)
+	err = q.writeCmd(ctx, cn, cmd)
+	q.releaseConn(ctx, cn, err, false)
 	return err
 }
 
+// initHealthCheck initializes the health check routine.
 func (c *qChannel) initHealthCheck() {
 	ctx := context.TODO()
 	c.ping = make(chan struct{}, 1)
@@ -472,6 +500,7 @@ func (c *qChannel) initHealthCheck() {
 	}()
 }
 
+// initMsgChan initializes the message receiving routine.
 func (c *qChannel) initMsgChan() {
 	ctx := context.TODO()
 	c.msgCh = make(chan *QMessage, c.chanSize)
@@ -484,7 +513,7 @@ func (c *qChannel) initMsgChan() {
 		for {
 			msg, err := c.qwatch.Receive(ctx)
 			if err != nil {
-				if err == pool.ErrClosed {
+				if errors.Is(err, pool.ErrClosed) {
 					close(c.msgCh)
 					return
 				}
@@ -497,6 +526,7 @@ func (c *qChannel) initMsgChan() {
 
 			errCount = 0
 
+			// Any message is as good as a ping.
 			select {
 			case c.ping <- struct{}{}:
 			default:
@@ -515,7 +545,7 @@ func (c *qChannel) initMsgChan() {
 				case <-timer.C:
 					internal.Logger.Printf(
 						ctx, "redis: %s channel is full for %s (message is dropped)",
-						c, c.chanSendTimeout)
+						c.qwatch, c.chanSendTimeout)
 				}
 			default:
 				internal.Logger.Printf(ctx, "redis: unknown message type: %T", msg)
@@ -537,6 +567,8 @@ func (q *QWatch) UnwatchQuery(ctx context.Context, query string) error {
 	return err
 }
 
+// unwatchQuery sends the QUNWATCH command to the server.
+// It must be called with the mutex locked.
 func (q *QWatch) unwatchQuery(ctx context.Context, redisCmd string, query string) error {
 	cn, err := q.conn(ctx, query)
 	if err != nil {
@@ -548,6 +580,7 @@ func (q *QWatch) unwatchQuery(ctx context.Context, redisCmd string, query string
 	return err
 }
 
+// _unwatchQuery sends the QUNWATCH command to the Redis server.
 func (q *QWatch) _unwatchQuery(ctx context.Context, cn *pool.Conn, redisCmd string, query string) error {
 	cmd := NewSliceCmd(ctx, redisCmd, query)
 	return q.writeCmd(ctx, cn, cmd)
