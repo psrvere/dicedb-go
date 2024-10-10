@@ -1,4 +1,4 @@
-package redis_test
+package dicedb_test
 
 import (
 	"context"
@@ -11,10 +11,10 @@ import (
 )
 
 var _ = Describe("Sentinel PROTO 2", func() {
-	var client *redis.Client
+	var client *dicedb.Client
 
 	BeforeEach(func() {
-		client = redis.NewFailoverClient(&redis.FailoverOptions{
+		client = dicedb.NewFailoverClient(&dicedb.FailoverOptions{
 			MasterName:    sentinelName,
 			SentinelAddrs: sentinelAddrs,
 			MaxRetries:    -1,
@@ -35,13 +35,13 @@ var _ = Describe("Sentinel PROTO 2", func() {
 })
 
 var _ = Describe("Sentinel", func() {
-	var client *redis.Client
-	var master *redis.Client
+	var client *dicedb.Client
+	var master *dicedb.Client
 	var masterPort string
-	var sentinel *redis.SentinelClient
+	var sentinel *dicedb.SentinelClient
 
 	BeforeEach(func() {
-		client = redis.NewFailoverClient(&redis.FailoverOptions{
+		client = dicedb.NewFailoverClient(&dicedb.FailoverOptions{
 			ClientName:    "sentinel_hi",
 			MasterName:    sentinelName,
 			SentinelAddrs: sentinelAddrs,
@@ -49,7 +49,7 @@ var _ = Describe("Sentinel", func() {
 		})
 		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 
-		sentinel = redis.NewSentinelClient(&redis.Options{
+		sentinel = dicedb.NewSentinelClient(&dicedb.Options{
 			Addr:       ":" + sentinelPort1,
 			MaxRetries: -1,
 		})
@@ -57,7 +57,7 @@ var _ = Describe("Sentinel", func() {
 		addr, err := sentinel.GetMasterAddrByName(ctx, sentinelName).Result()
 		Expect(err).NotTo(HaveOccurred())
 
-		master = redis.NewClient(&redis.Options{
+		master = dicedb.NewClient(&dicedb.Options{
 			Addr:       net.JoinHostPort(addr[0], addr[1]),
 			MaxRetries: -1,
 		})
@@ -94,13 +94,13 @@ var _ = Describe("Sentinel", func() {
 		// Verify master->slaves sync.
 		var slavesAddr []string
 		Eventually(func() []string {
-			slavesAddr = redis.GetSlavesAddrByName(ctx, sentinel, sentinelName)
+			slavesAddr = dicedb.GetSlavesAddrByName(ctx, sentinel, sentinelName)
 			return slavesAddr
 		}, "15s", "100ms").Should(HaveLen(2))
 		Eventually(func() bool {
 			sync := true
 			for _, addr := range slavesAddr {
-				slave := redis.NewClient(&redis.Options{
+				slave := dicedb.NewClient(&dicedb.Options{
 					Addr:       addr,
 					MaxRetries: -1,
 				})
@@ -127,8 +127,8 @@ var _ = Describe("Sentinel", func() {
 		}, "15s", "100ms").Should(Equal("master"))
 
 		// Check if subscription is renewed.
-		var msg *redis.Message
-		Eventually(func() <-chan *redis.Message {
+		var msg *dicedb.Message
+		Eventually(func() <-chan *dicedb.Message {
 			_ = client.Publish(ctx, "foo", "hello").Err()
 			return ch
 		}, "15s", "100ms").Should(Receive(&msg))
@@ -143,7 +143,7 @@ var _ = Describe("Sentinel", func() {
 	It("supports DB selection", func() {
 		Expect(client.Close()).NotTo(HaveOccurred())
 
-		client = redis.NewFailoverClient(&redis.FailoverOptions{
+		client = dicedb.NewFailoverClient(&dicedb.FailoverOptions{
 			MasterName:    sentinelName,
 			SentinelAddrs: sentinelAddrs,
 			DB:            1,
@@ -167,10 +167,10 @@ var _ = Describe("Sentinel", func() {
 })
 
 var _ = Describe("NewFailoverClusterClient PROTO 2", func() {
-	var client *redis.ClusterClient
+	var client *dicedb.ClusterClient
 
 	BeforeEach(func() {
-		client = redis.NewFailoverClusterClient(&redis.FailoverOptions{
+		client = dicedb.NewFailoverClusterClient(&dicedb.FailoverOptions{
 			MasterName:    sentinelName,
 			SentinelAddrs: sentinelAddrs,
 			Protocol:      2,
@@ -185,7 +185,7 @@ var _ = Describe("NewFailoverClusterClient PROTO 2", func() {
 	})
 
 	It("should sentinel cluster PROTO 2", func() {
-		_ = client.ForEachShard(ctx, func(ctx context.Context, c *redis.Client) error {
+		_ = client.ForEachShard(ctx, func(ctx context.Context, c *dicedb.Client) error {
 			val, err := client.Do(ctx, "HELLO").Result()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(val).Should(ContainElements("proto", int64(2)))
@@ -195,12 +195,12 @@ var _ = Describe("NewFailoverClusterClient PROTO 2", func() {
 })
 
 var _ = Describe("NewFailoverClusterClient", func() {
-	var client *redis.ClusterClient
-	var master *redis.Client
+	var client *dicedb.ClusterClient
+	var master *dicedb.Client
 	var masterPort string
 
 	BeforeEach(func() {
-		client = redis.NewFailoverClusterClient(&redis.FailoverOptions{
+		client = dicedb.NewFailoverClusterClient(&dicedb.FailoverOptions{
 			ClientName:    "sentinel_cluster_hi",
 			MasterName:    sentinelName,
 			SentinelAddrs: sentinelAddrs,
@@ -209,7 +209,7 @@ var _ = Describe("NewFailoverClusterClient", func() {
 		})
 		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 
-		sentinel := redis.NewSentinelClient(&redis.Options{
+		sentinel := dicedb.NewSentinelClient(&dicedb.Options{
 			Addr:       ":" + sentinelPort1,
 			MaxRetries: -1,
 		})
@@ -217,7 +217,7 @@ var _ = Describe("NewFailoverClusterClient", func() {
 		addr, err := sentinel.GetMasterAddrByName(ctx, sentinelName).Result()
 		Expect(err).NotTo(HaveOccurred())
 
-		master = redis.NewClient(&redis.Options{
+		master = dicedb.NewClient(&dicedb.Options{
 			Addr:       net.JoinHostPort(addr[0], addr[1]),
 			MaxRetries: -1,
 		})
@@ -270,8 +270,8 @@ var _ = Describe("NewFailoverClusterClient", func() {
 		}, "15s", "100ms").Should(Equal("master"))
 
 		// Check if subscription is renewed.
-		var msg *redis.Message
-		Eventually(func() <-chan *redis.Message {
+		var msg *dicedb.Message
+		Eventually(func() <-chan *dicedb.Message {
 			_ = client.Publish(ctx, "foo", "hello").Err()
 			return ch
 		}, "15s", "100ms").Should(Receive(&msg))
@@ -285,12 +285,12 @@ var _ = Describe("NewFailoverClusterClient", func() {
 
 	It("should sentinel cluster client setname", func() {
 		Skip("Flaky Test")
-		err := client.ForEachShard(ctx, func(ctx context.Context, c *redis.Client) error {
+		err := client.ForEachShard(ctx, func(ctx context.Context, c *dicedb.Client) error {
 			return c.Ping(ctx).Err()
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		_ = client.ForEachShard(ctx, func(ctx context.Context, c *redis.Client) error {
+		_ = client.ForEachShard(ctx, func(ctx context.Context, c *dicedb.Client) error {
 			val, err := c.ClientList(ctx).Result()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(val).Should(ContainSubstring("name=sentinel_cluster_hi"))
@@ -300,7 +300,7 @@ var _ = Describe("NewFailoverClusterClient", func() {
 
 	It("should sentinel cluster PROTO 3", func() {
 		Skip("Flaky Test")
-		_ = client.ForEachShard(ctx, func(ctx context.Context, c *redis.Client) error {
+		_ = client.ForEachShard(ctx, func(ctx context.Context, c *dicedb.Client) error {
 			val, err := client.Do(ctx, "HELLO").Result()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(val).Should(HaveKeyWithValue("proto", int64(3)))
@@ -315,14 +315,14 @@ var _ = Describe("SentinelAclAuth", func() {
 		aclSentinelPassword = "sentinel-pass"
 	)
 
-	var client *redis.Client
-	var sentinel *redis.SentinelClient
+	var client *dicedb.Client
+	var sentinel *dicedb.SentinelClient
 	sentinels := func() []*redisProcess {
 		return []*redisProcess{sentinel1, sentinel2, sentinel3}
 	}
 
 	BeforeEach(func() {
-		authCmd := redis.NewStatusCmd(ctx, "ACL", "SETUSER", aclSentinelUsername, "ON",
+		authCmd := dicedb.NewStatusCmd(ctx, "ACL", "SETUSER", aclSentinelUsername, "ON",
 			">"+aclSentinelPassword, "-@all", "+auth", "+client|getname", "+client|id", "+client|setname",
 			"+command", "+hello", "+ping", "+client|setinfo", "+role", "+sentinel|get-master-addr-by-name", "+sentinel|master",
 			"+sentinel|myid", "+sentinel|replicas", "+sentinel|sentinels")
@@ -332,7 +332,7 @@ var _ = Describe("SentinelAclAuth", func() {
 			Expect(err).NotTo(HaveOccurred())
 		}
 
-		client = redis.NewFailoverClient(&redis.FailoverOptions{
+		client = dicedb.NewFailoverClient(&dicedb.FailoverOptions{
 			MasterName:       sentinelName,
 			SentinelAddrs:    sentinelAddrs,
 			MaxRetries:       -1,
@@ -342,7 +342,7 @@ var _ = Describe("SentinelAclAuth", func() {
 
 		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 
-		sentinel = redis.NewSentinelClient(&redis.Options{
+		sentinel = dicedb.NewSentinelClient(&dicedb.Options{
 			Addr:       sentinelAddrs[0],
 			MaxRetries: -1,
 			Username:   aclSentinelUsername,
@@ -361,7 +361,7 @@ var _ = Describe("SentinelAclAuth", func() {
 	})
 
 	AfterEach(func() {
-		unauthCommand := redis.NewStatusCmd(ctx, "ACL", "DELUSER", aclSentinelUsername)
+		unauthCommand := dicedb.NewStatusCmd(ctx, "ACL", "DELUSER", aclSentinelUsername)
 
 		for _, process := range sentinels() {
 			err := process.Client.Process(ctx, unauthCommand)

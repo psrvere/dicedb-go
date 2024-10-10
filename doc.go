@@ -1,4 +1,4 @@
 /*
-Package redis implements a Redis client.
+Package dicedb implements a DiceDB client.
 */
-package redis
+package dicedb

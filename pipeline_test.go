@@ -1,4 +1,4 @@
-package redis_test
+package dicedb_test
 
 import (
 	"errors"
@@ -11,11 +11,11 @@ import (
 )
 
 var _ = Describe("pipelining", func() {
-	var client *redis.Client
-	var pipe *redis.Pipeline
+	var client *dicedb.Client
+	var pipe *dicedb.Pipeline
 
 	BeforeEach(func() {
-		client = redis.NewClient(redisOptions())
+		client = dicedb.NewClient(redisOptions())
 		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 	})
 
@@ -24,15 +24,15 @@ var _ = Describe("pipelining", func() {
 	})
 
 	It("supports block style", func() {
-		var get *redis.StringCmd
-		cmds, err := client.Pipelined(ctx, func(pipe redis.Pipeliner) error {
+		var get *dicedb.StringCmd
+		cmds, err := client.Pipelined(ctx, func(pipe dicedb.Pipeliner) error {
 			get = pipe.Get(ctx, "foo")
 			return nil
 		})
-		Expect(err).To(Equal(redis.Nil))
+		Expect(err).To(Equal(dicedb.Nil))
 		Expect(cmds).To(HaveLen(1))
 		Expect(cmds[0]).To(Equal(get))
-		Expect(get.Err()).To(Equal(redis.Nil))
+		Expect(get.Err()).To(Equal(dicedb.Nil))
 		Expect(get.Val()).To(Equal(""))
 	})
 
@@ -81,7 +81,7 @@ var _ = Describe("pipelining", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(cmds).To(HaveLen(callCount))
 				for _, cmd := range cmds {
-					Expect(cmd).To(BeAssignableToTypeOf(&redis.BoolCmd{}))
+					Expect(cmd).To(BeAssignableToTypeOf(&dicedb.BoolCmd{}))
 				}
 			}
 		})
@@ -94,7 +94,7 @@ var _ = Describe("pipelining", func() {
 
 	Describe("Pipeline", func() {
 		BeforeEach(func() {
-			pipe = client.Pipeline().(*redis.Pipeline)
+			pipe = client.Pipeline().(*dicedb.Pipeline)
 		})
 
 		assertPipeline()
@@ -102,7 +102,7 @@ var _ = Describe("pipelining", func() {
 
 	Describe("TxPipeline", func() {
 		BeforeEach(func() {
-			pipe = client.TxPipeline().(*redis.Pipeline)
+			pipe = client.TxPipeline().(*dicedb.Pipeline)
 		})
 
 		assertPipeline()

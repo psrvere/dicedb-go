@@ -1,4 +1,4 @@
-package redis_test
+package dicedb_test
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ import (
 )
 
 var _ = Describe("ScanIterator", func() {
-	var client *redis.Client
+	var client *dicedb.Client
 
 	seed := func(n int) error {
 		pipe := client.Pipeline()
@@ -44,7 +44,7 @@ var _ = Describe("ScanIterator", func() {
 	}
 
 	BeforeEach(func() {
-		client = redis.NewClient(redisOptions())
+		client = dicedb.NewClient(redisOptions())
 		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 	})
 

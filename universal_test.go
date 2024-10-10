@@ -1,4 +1,4 @@
-package redis_test
+package dicedb_test
 
 import (
 	. "github.com/bsm/ginkgo/v2"
@@ -8,7 +8,7 @@ import (
 )
 
 var _ = Describe("UniversalClient", func() {
-	var client redis.UniversalClient
+	var client dicedb.UniversalClient
 
 	AfterEach(func() {
 		if client != nil {
@@ -18,7 +18,7 @@ var _ = Describe("UniversalClient", func() {
 
 	It("should connect to failover servers", func() {
 		Skip("Flaky Test")
-		client = redis.NewUniversalClient(&redis.UniversalOptions{
+		client = dicedb.NewUniversalClient(&dicedb.UniversalOptions{
 			MasterName: sentinelName,
 			Addrs:      sentinelAddrs,
 		})
@@ -26,14 +26,14 @@ var _ = Describe("UniversalClient", func() {
 	})
 
 	It("should connect to simple servers", func() {
-		client = redis.NewUniversalClient(&redis.UniversalOptions{
+		client = dicedb.NewUniversalClient(&dicedb.UniversalOptions{
 			Addrs: []string{redisAddr},
 		})
 		Expect(client.Ping(ctx).Err()).NotTo(HaveOccurred())
 	})
 
 	It("should connect to clusters", Label("NonRedisEnterprise"), func() {
-		client = redis.NewUniversalClient(&redis.UniversalOptions{
+		client = dicedb.NewUniversalClient(&dicedb.UniversalOptions{
 			Addrs: cluster.addrs(),
 		})
 		Expect(client.Ping(ctx).Err()).NotTo(HaveOccurred())

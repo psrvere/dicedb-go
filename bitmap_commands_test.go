@@ -1,4 +1,4 @@
-package redis_test
+package dicedb_test
 
 import (
 	. "github.com/bsm/ginkgo/v2"
@@ -13,11 +13,11 @@ type bitCountExpected struct {
 }
 
 var _ = Describe("BitCountBite", func() {
-	var client *redis.Client
+	var client *dicedb.Client
 	key := "bit_count_test"
 
 	BeforeEach(func() {
-		client = redis.NewClient(redisOptions())
+		client = dicedb.NewClient(redisOptions())
 		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 		values := []int{0, 1, 0, 0, 1, 0, 1, 0, 1, 1}
 		for i, v := range values {
@@ -45,7 +45,7 @@ var _ = Describe("BitCountBite", func() {
 		}
 
 		for _, e := range expected {
-			cmd := client.BitCount(ctx, key, &redis.BitCount{Start: e.Start, End: e.End, Unit: redis.BitCountIndexBit})
+			cmd := client.BitCount(ctx, key, &dicedb.BitCount{Start: e.Start, End: e.End, Unit: dicedb.BitCountIndexBit})
 			Expect(cmd.Err()).NotTo(HaveOccurred())
 			Expect(cmd.Val()).To(Equal(e.Expected))
 		}
@@ -53,11 +53,11 @@ var _ = Describe("BitCountBite", func() {
 })
 
 var _ = Describe("BitCountByte", func() {
-	var client *redis.Client
+	var client *dicedb.Client
 	key := "bit_count_test"
 
 	BeforeEach(func() {
-		client = redis.NewClient(redisOptions())
+		client = dicedb.NewClient(redisOptions())
 		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 		values := []int{0, 0, 0, 0, 0, 0, 0, 1, 1, 1}
 		for i, v := range values {
@@ -77,7 +77,7 @@ var _ = Describe("BitCountByte", func() {
 		}
 
 		for _, e := range expected {
-			cmd := client.BitCount(ctx, key, &redis.BitCount{Start: e.Start, End: e.End, Unit: redis.BitCountIndexByte})
+			cmd := client.BitCount(ctx, key, &dicedb.BitCount{Start: e.Start, End: e.End, Unit: dicedb.BitCountIndexByte})
 			Expect(cmd.Err()).NotTo(HaveOccurred())
 			Expect(cmd.Val()).To(Equal(e.Expected))
 		}
@@ -90,7 +90,7 @@ var _ = Describe("BitCountByte", func() {
 		}
 
 		for _, e := range expected {
-			cmd := client.BitCount(ctx, key, &redis.BitCount{Start: e.Start, End: e.End})
+			cmd := client.BitCount(ctx, key, &dicedb.BitCount{Start: e.Start, End: e.End})
 			Expect(cmd.Err()).NotTo(HaveOccurred())
 			Expect(cmd.Val()).To(Equal(e.Expected))
 		}

@@ -1,4 +1,4 @@
-package redis_test
+package dicedb_test
 
 import (
 	"fmt"
@@ -62,7 +62,7 @@ var cluster = &clusterScenario{
 	ports:     []string{"8220", "8221", "8222", "8223", "8224", "8225"},
 	nodeIDs:   make([]string, 6),
 	processes: make(map[string]*redisProcess, 6),
-	clients:   make(map[string]*redis.Client, 6),
+	clients:   make(map[string]*dicedb.Client, 6),
 }
 
 var RECluster = false
@@ -142,9 +142,9 @@ func TestGinkgoSuite(t *testing.T) {
 
 //------------------------------------------------------------------------------
 
-func redisOptions() *redis.Options {
+func redisOptions() *dicedb.Options {
 	if RECluster {
-		return &redis.Options{
+		return &dicedb.Options{
 			Addr: redisAddr,
 			DB:   0,
 
@@ -160,7 +160,7 @@ func redisOptions() *redis.Options {
 			ConnMaxIdleTime: time.Minute,
 		}
 	}
-	return &redis.Options{
+	return &dicedb.Options{
 		Addr: redisAddr,
 		DB:   15,
 
@@ -177,8 +177,8 @@ func redisOptions() *redis.Options {
 	}
 }
 
-func redisClusterOptions() *redis.ClusterOptions {
-	return &redis.ClusterOptions{
+func redisClusterOptions() *dicedb.ClusterOptions {
+	return &dicedb.ClusterOptions{
 		DialTimeout:  10 * time.Second,
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,
@@ -191,8 +191,8 @@ func redisClusterOptions() *redis.ClusterOptions {
 	}
 }
 
-func redisRingOptions() *redis.RingOptions {
-	return &redis.RingOptions{
+func redisRingOptions() *dicedb.RingOptions {
+	return &dicedb.RingOptions{
 		Addrs: map[string]string{
 			"ringShardOne": ":" + ringShard1Port,
 			"ringShardTwo": ":" + ringShard2Port,
@@ -280,8 +280,8 @@ func execCmd(name string, args ...string) (*os.Process, error) {
 	return cmd.Process, cmd.Start()
 }
 
-func connectTo(port string) (*redis.Client, error) {
-	client := redis.NewClient(&redis.Options{
+func connectTo(port string) (*dicedb.Client, error) {
+	client := dicedb.NewClient(&dicedb.Options{
 		Addr:       ":" + port,
 		MaxRetries: -1,
 	})
@@ -298,7 +298,7 @@ func connectTo(port string) (*redis.Client, error) {
 
 type redisProcess struct {
 	*os.Process
-	*redis.Client
+	*dicedb.Client
 }
 
 func (p *redisProcess) Close() error {
@@ -391,11 +391,11 @@ func startSentinel(port, masterName, masterPort string) (*redisProcess, error) {
 
 	// set down-after-milliseconds=2000
 	// link: https://github.com/redis/redis/issues/8607
-	for _, cmd := range []*redis.StatusCmd{
-		redis.NewStatusCmd(ctx, "SENTINEL", "MONITOR", masterName, "127.0.0.1", masterPort, "2"),
-		redis.NewStatusCmd(ctx, "SENTINEL", "SET", masterName, "down-after-milliseconds", "2000"),
-		redis.NewStatusCmd(ctx, "SENTINEL", "SET", masterName, "failover-timeout", "1000"),
-		redis.NewStatusCmd(ctx, "SENTINEL", "SET", masterName, "parallel-syncs", "1"),
+	for _, cmd := range []*dicedb.StatusCmd{
+		dicedb.NewStatusCmd(ctx, "SENTINEL", "MONITOR", masterName, "127.0.0.1", masterPort, "2"),
+		dicedb.NewStatusCmd(ctx, "SENTINEL", "SET", masterName, "down-after-milliseconds", "2000"),
+		dicedb.NewStatusCmd(ctx, "SENTINEL", "SET", masterName, "failover-timeout", "1000"),
+		dicedb.NewStatusCmd(ctx, "SENTINEL", "SET", masterName, "parallel-syncs", "1"),
 	} {
 		client.Process(ctx, cmd)
 		if err := cmd.Err(); err != nil {
@@ -457,26 +457,26 @@ func (cn *badConn) Write([]byte) (int, error) {
 //------------------------------------------------------------------------------
 
 type hook struct {
-	dialHook            func(hook redis.DialHook) redis.DialHook
-	processHook         func(hook redis.ProcessHook) redis.ProcessHook
-	processPipelineHook func(hook redis.ProcessPipelineHook) redis.ProcessPipelineHook
+	dialHook            func(hook dicedb.DialHook) dicedb.DialHook
+	processHook         func(hook dicedb.ProcessHook) dicedb.ProcessHook
+	processPipelineHook func(hook dicedb.ProcessPipelineHook) dicedb.ProcessPipelineHook
 }
 
-func (h *hook) DialHook(hook redis.DialHook) redis.DialHook {
+func (h *hook) DialHook(hook dicedb.DialHook) dicedb.DialHook {
 	if h.dialHook != nil {
 		return h.dialHook(hook)
 	}
 	return hook
 }
 
-func (h *hook) ProcessHook(hook redis.ProcessHook) redis.ProcessHook {
+func (h *hook) ProcessHook(hook dicedb.ProcessHook) dicedb.ProcessHook {
 	if h.processHook != nil {
 		return h.processHook(hook)
 	}
 	return hook
 }
 
-func (h *hook) ProcessPipelineHook(hook redis.ProcessPipelineHook) redis.ProcessPipelineHook {
+func (h *hook) ProcessPipelineHook(hook dicedb.ProcessPipelineHook) dicedb.ProcessPipelineHook {
 	if h.processPipelineHook != nil {
 		return h.processPipelineHook(hook)
 	}

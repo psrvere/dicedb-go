@@ -1,4 +1,4 @@
-package redis_test
+package dicedb_test
 
 import (
 	"context"
@@ -12,11 +12,11 @@ import (
 
 var (
 	ctx = context.Background()
-	rdb *redis.Client
+	rdb *dicedb.Client
 )
 
 func init() {
-	rdb = redis.NewClient(&redis.Options{
+	rdb = dicedb.NewClient(&dicedb.Options{
 		Addr:         ":6379",
 		DialTimeout:  10 * time.Second,
 		ReadTimeout:  30 * time.Second,
@@ -27,7 +27,7 @@ func init() {
 }
 
 func ExampleNewClient() {
-	rdb := redis.NewClient(&redis.Options{
+	rdb := dicedb.NewClient(&dicedb.Options{
 		Addr:     "localhost:6379", // use default Addr
 		Password: "",               // no password set
 		DB:       0,                // use default DB
@@ -39,7 +39,7 @@ func ExampleNewClient() {
 }
 
 func ExampleParseURL() {
-	opt, err := redis.ParseURL("redis://:qwerty@localhost:6379/1?dial_timeout=5s")
+	opt, err := dicedb.ParseURL("redis://:qwerty@localhost:6379/1?dial_timeout=5s")
 	if err != nil {
 		panic(err)
 	}
@@ -49,7 +49,7 @@ func ExampleParseURL() {
 	fmt.Println("dial timeout is", opt.DialTimeout)
 
 	// Create client as usually.
-	_ = redis.NewClient(opt)
+	_ = dicedb.NewClient(opt)
 
 	// Output: addr is localhost:6379
 	// db is 1
@@ -60,7 +60,7 @@ func ExampleParseURL() {
 func ExampleNewFailoverClient() {
 	// See http://redis.io/topics/sentinel for instructions how to
 	// setup Redis Sentinel.
-	rdb := redis.NewFailoverClient(&redis.FailoverOptions{
+	rdb := dicedb.NewFailoverClient(&dicedb.FailoverOptions{
 		MasterName:    "master",
 		SentinelAddrs: []string{":26379"},
 	})
@@ -70,7 +70,7 @@ func ExampleNewFailoverClient() {
 func ExampleNewClusterClient() {
 	// See http://redis.io/topics/cluster-tutorial for instructions
 	// how to setup Redis Cluster.
-	rdb := redis.NewClusterClient(&redis.ClusterOptions{
+	rdb := dicedb.NewClusterClient(&dicedb.ClusterOptions{
 		Addrs: []string{":7000", ":7001", ":7002", ":7003", ":7004", ":7005"},
 	})
 	rdb.Ping(ctx)
@@ -82,13 +82,13 @@ func ExampleNewClusterClient_manualSetup() {
 	// clusterSlots returns cluster slots information.
 	// It can use service like ZooKeeper to maintain configuration information
 	// and Cluster.ReloadState to manually trigger state reloading.
-	clusterSlots := func(ctx context.Context) ([]redis.ClusterSlot, error) {
-		slots := []redis.ClusterSlot{
+	clusterSlots := func(ctx context.Context) ([]dicedb.ClusterSlot, error) {
+		slots := []dicedb.ClusterSlot{
 			// First node with 1 master and 1 slave.
 			{
 				Start: 0,
 				End:   8191,
-				Nodes: []redis.ClusterNode{{
+				Nodes: []dicedb.ClusterNode{{
 					Addr: ":7000", // master
 				}, {
 					Addr: ":8000", // 1st slave
@@ -98,7 +98,7 @@ func ExampleNewClusterClient_manualSetup() {
 			{
 				Start: 8192,
 				End:   16383,
-				Nodes: []redis.ClusterNode{{
+				Nodes: []dicedb.ClusterNode{{
 					Addr: ":7001", // master
 				}, {
 					Addr: ":8001", // 1st slave
@@ -108,7 +108,7 @@ func ExampleNewClusterClient_manualSetup() {
 		return slots, nil
 	}
 
-	rdb := redis.NewClusterClient(&redis.ClusterOptions{
+	rdb := dicedb.NewClusterClient(&dicedb.ClusterOptions{
 		ClusterSlots:  clusterSlots,
 		RouteRandomly: true,
 	})
@@ -120,7 +120,7 @@ func ExampleNewClusterClient_manualSetup() {
 }
 
 func ExampleNewRing() {
-	rdb := redis.NewRing(&redis.RingOptions{
+	rdb := dicedb.NewRing(&dicedb.RingOptions{
 		Addrs: map[string]string{
 			"shard1": ":7000",
 			"shard2": ":7001",
@@ -143,7 +143,7 @@ func ExampleClient() {
 	fmt.Println("key", val)
 
 	val2, err := rdb.Get(ctx, "missing_key").Result()
-	if err == redis.Nil {
+	if err == dicedb.Nil {
 		fmt.Println("missing_key does not exist")
 	} else if err != nil {
 		panic(err)
@@ -178,7 +178,7 @@ func ExampleConn_name() {
 func ExampleConn_client_setInfo_libraryVersion() {
 	conn := rdb.Conn()
 
-	err := conn.ClientSetInfo(ctx, redis.WithLibraryVersion("1.2.3")).Err()
+	err := conn.ClientSetInfo(ctx, dicedb.WithLibraryVersion("1.2.3")).Err()
 	if err != nil {
 		panic(err)
 	}
@@ -412,8 +412,8 @@ func ExampleSliceCmd_Scan() {
 }
 
 func ExampleClient_Pipelined() {
-	var incr *redis.IntCmd
-	_, err := rdb.Pipelined(ctx, func(pipe redis.Pipeliner) error {
+	var incr *dicedb.IntCmd
+	_, err := rdb.Pipelined(ctx, func(pipe dicedb.Pipeliner) error {
 		incr = pipe.Incr(ctx, "pipelined_counter")
 		pipe.Expire(ctx, "pipelined_counter", time.Hour)
 		return nil
@@ -440,8 +440,8 @@ func ExampleClient_Pipeline() {
 }
 
 func ExampleClient_TxPipelined() {
-	var incr *redis.IntCmd
-	_, err := rdb.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
+	var incr *dicedb.IntCmd
+	_, err := rdb.TxPipelined(ctx, func(pipe dicedb.Pipeliner) error {
 		incr = pipe.Incr(ctx, "tx_pipelined_counter")
 		pipe.Expire(ctx, "tx_pipelined_counter", time.Hour)
 		return nil
@@ -475,10 +475,10 @@ func ExampleClient_Watch() {
 	// Increment transactionally increments key using GET and SET commands.
 	increment := func(key string) error {
 		// Transactional function.
-		txf := func(tx *redis.Tx) error {
+		txf := func(tx *dicedb.Tx) error {
 			// Get current value or zero.
 			n, err := tx.Get(ctx, key).Int()
-			if err != nil && err != redis.Nil {
+			if err != nil && err != dicedb.Nil {
 				return err
 			}
 
@@ -486,7 +486,7 @@ func ExampleClient_Watch() {
 			n++
 
 			// Operation is committed only if the watched keys remain unchanged.
-			_, err = tx.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
+			_, err = tx.TxPipelined(ctx, func(pipe dicedb.Pipeliner) error {
 				pipe.Set(ctx, key, n, 0)
 				return nil
 			})
@@ -499,7 +499,7 @@ func ExampleClient_Watch() {
 				// Success.
 				return nil
 			}
-			if err == redis.TxFailedErr {
+			if err == dicedb.TxFailedErr {
 				// Optimistic lock lost. Retry.
 				continue
 			}
@@ -571,14 +571,14 @@ func ExamplePubSub_Receive() {
 		}
 
 		switch msg := msgi.(type) {
-		case *redis.Subscription:
+		case *dicedb.Subscription:
 			fmt.Println("subscribed to", msg.Channel)
 
 			_, err := rdb.Publish(ctx, "mychannel2", "hello").Result()
 			if err != nil {
 				panic(err)
 			}
-		case *redis.Message:
+		case *dicedb.Message:
 			fmt.Println("received", msg.Payload, "from", msg.Channel)
 		default:
 			panic("unreached")
@@ -590,7 +590,7 @@ func ExamplePubSub_Receive() {
 }
 
 func ExampleScript() {
-	IncrByXX := redis.NewScript(`
+	IncrByXX := dicedb.NewScript(`
 		if redis.call("GET", KEYS[1]) ~= false then
 			return redis.call("INCRBY", KEYS[1], ARGV[1])
 		end
@@ -613,8 +613,8 @@ func ExampleScript() {
 }
 
 func Example_customCommand() {
-	Get := func(ctx context.Context, rdb *redis.Client, key string) *redis.StringCmd {
-		cmd := redis.NewStringCmd(ctx, "get", key)
+	Get := func(ctx context.Context, rdb *dicedb.Client, key string) *dicedb.StringCmd {
+		cmd := dicedb.NewStringCmd(ctx, "get", key)
 		rdb.Process(ctx, cmd)
 		return cmd
 	}
@@ -651,7 +651,7 @@ func ExampleScanCmd_Iterator() {
 }
 
 func ExampleNewUniversalClient_simple() {
-	rdb := redis.NewUniversalClient(&redis.UniversalOptions{
+	rdb := dicedb.NewUniversalClient(&dicedb.UniversalOptions{
 		Addrs: []string{":6379"},
 	})
 	defer rdb.Close()
@@ -660,7 +660,7 @@ func ExampleNewUniversalClient_simple() {
 }
 
 func ExampleNewUniversalClient_failover() {
-	rdb := redis.NewUniversalClient(&redis.UniversalOptions{
+	rdb := dicedb.NewUniversalClient(&dicedb.UniversalOptions{
 		MasterName: "master",
 		Addrs:      []string{":26379"},
 	})
@@ -670,7 +670,7 @@ func ExampleNewUniversalClient_failover() {
 }
 
 func ExampleNewUniversalClient_cluster() {
-	rdb := redis.NewUniversalClient(&redis.UniversalOptions{
+	rdb := dicedb.NewUniversalClient(&dicedb.UniversalOptions{
 		Addrs: []string{":7000", ":7001", ":7002", ":7003", ":7004", ":7005"},
 	})
 	defer rdb.Close()

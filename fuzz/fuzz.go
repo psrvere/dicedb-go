@@ -12,11 +12,11 @@ import (
 
 var (
 	ctx = context.Background()
-	rdb *redis.Client
+	rdb *dicedb.Client
 )
 
 func init() {
-	rdb = redis.NewClient(&redis.Options{
+	rdb = dicedb.NewClient(&dicedb.Options{
 		Addr:         ":6379",
 		DialTimeout:  10 * time.Second,
 		ReadTimeout:  10 * time.Second,

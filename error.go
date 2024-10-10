@@ -1,4 +1,4 @@
-package redis
+package dicedb
 
 import (
 	"context"
@@ -74,7 +74,8 @@ func shouldRetry(err error, retryTimeout bool) bool {
 }
 
 func isRedisError(err error) bool {
-	_, ok := err.(proto.RedisError)
+	var redisError proto.RedisError
+	ok := errors.As(err, &redisError)
 	return ok
 }
 

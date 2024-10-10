@@ -1,4 +1,4 @@
-package redis_test
+package dicedb_test
 
 import (
 	"context"
@@ -15,10 +15,10 @@ type JSONGetTestStruct struct {
 
 var _ = Describe("JSON Commands", Label("json"), func() {
 	ctx := context.TODO()
-	var client *redis.Client
+	var client *dicedb.Client
 
 	BeforeEach(func() {
-		client = redis.NewClient(&redis.Options{Addr: ":6379"})
+		client = dicedb.NewClient(&dicedb.Options{Addr: ":6379"})
 		Expect(client.FlushAll(ctx).Err()).NotTo(HaveOccurred())
 	})
 
@@ -62,17 +62,17 @@ var _ = Describe("JSON Commands", Label("json"), func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(res[0]).To(Equal(int64(4)))
 
-			res, err = client.JSONArrIndexWithArgs(ctx, "index2", "$", &redis.JSONArrIndexArgs{}, 4).Result()
+			res, err = client.JSONArrIndexWithArgs(ctx, "index2", "$", &dicedb.JSONArrIndexArgs{}, 4).Result()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(res[0]).To(Equal(int64(4)))
 
 			stop := 5000
-			res, err = client.JSONArrIndexWithArgs(ctx, "index2", "$", &redis.JSONArrIndexArgs{Stop: &stop}, 4).Result()
+			res, err = client.JSONArrIndexWithArgs(ctx, "index2", "$", &dicedb.JSONArrIndexArgs{Stop: &stop}, 4).Result()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(res[0]).To(Equal(int64(4)))
 
 			stop = -1
-			res, err = client.JSONArrIndexWithArgs(ctx, "index2", "$", &redis.JSONArrIndexArgs{Stop: &stop}, 4).Result()
+			res, err = client.JSONArrIndexWithArgs(ctx, "index2", "$", &dicedb.JSONArrIndexArgs{Stop: &stop}, 4).Result()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(res[0]).To(Equal(int64(-1)))
 		})
@@ -175,7 +175,7 @@ var _ = Describe("JSON Commands", Label("json"), func() {
 			Expect(cmd1).To(Equal("OK"))
 
 			stop := 3
-			cmd2, err := client.JSONArrTrimWithArgs(ctx, "trim1", "$", &redis.JSONArrTrimArgs{Start: 1, Stop: &stop}).Result()
+			cmd2, err := client.JSONArrTrimWithArgs(ctx, "trim1", "$", &dicedb.JSONArrTrimArgs{Start: 1, Stop: &stop}).Result()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(cmd2).To(Equal([]int64{3}))
 
@@ -188,7 +188,7 @@ var _ = Describe("JSON Commands", Label("json"), func() {
 			Expect(cmd3).To(Equal("OK"))
 
 			stop = 3
-			cmd4, err := client.JSONArrTrimWithArgs(ctx, "trim2", "$", &redis.JSONArrTrimArgs{Start: -1, Stop: &stop}).Result()
+			cmd4, err := client.JSONArrTrimWithArgs(ctx, "trim2", "$", &dicedb.JSONArrTrimArgs{Start: -1, Stop: &stop}).Result()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(cmd4).To(Equal([]int64{0}))
 
@@ -197,7 +197,7 @@ var _ = Describe("JSON Commands", Label("json"), func() {
 			Expect(cmd5).To(Equal("OK"))
 
 			stop = 99
-			cmd6, err := client.JSONArrTrimWithArgs(ctx, "trim3", "$", &redis.JSONArrTrimArgs{Start: 3, Stop: &stop}).Result()
+			cmd6, err := client.JSONArrTrimWithArgs(ctx, "trim3", "$", &dicedb.JSONArrTrimArgs{Start: 3, Stop: &stop}).Result()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(cmd6).To(Equal([]int64{2}))
 
@@ -206,7 +206,7 @@ var _ = Describe("JSON Commands", Label("json"), func() {
 			Expect(cmd7).To(Equal("OK"))
 
 			stop = 1
-			cmd8, err := client.JSONArrTrimWithArgs(ctx, "trim4", "$", &redis.JSONArrTrimArgs{Start: 9, Stop: &stop}).Result()
+			cmd8, err := client.JSONArrTrimWithArgs(ctx, "trim4", "$", &dicedb.JSONArrTrimArgs{Start: 9, Stop: &stop}).Result()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(cmd8).To(Equal([]int64{0}))
 
@@ -215,7 +215,7 @@ var _ = Describe("JSON Commands", Label("json"), func() {
 			Expect(cmd9).To(Equal("OK"))
 
 			stop = 11
-			cmd10, err := client.JSONArrTrimWithArgs(ctx, "trim5", "$", &redis.JSONArrTrimArgs{Start: 9, Stop: &stop}).Result()
+			cmd10, err := client.JSONArrTrimWithArgs(ctx, "trim5", "$", &dicedb.JSONArrTrimArgs{Start: 9, Stop: &stop}).Result()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(cmd10).To(Equal([]int64{0}))
 		})
@@ -247,11 +247,11 @@ var _ = Describe("JSON Commands", Label("json"), func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(res).To(Equal("OK"))
 
-			res, err = client.JSONGetWithArgs(ctx, "get3", &redis.JSONGetArgs{Indent: "-"}).Result()
+			res, err = client.JSONGetWithArgs(ctx, "get3", &dicedb.JSONGetArgs{Indent: "-"}).Result()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(res).To(Equal(`{-"a":1,-"b":2}`))
 
-			res, err = client.JSONGetWithArgs(ctx, "get3", &redis.JSONGetArgs{Indent: "-", Newline: `~`, Space: `!`}).Result()
+			res, err = client.JSONGetWithArgs(ctx, "get3", &dicedb.JSONGetArgs{Indent: "-", Newline: `~`, Space: `!`}).Result()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(res).To(Equal(`{~-"a":!1,~-"b":!2~}`))
 		})
@@ -271,9 +271,9 @@ var _ = Describe("JSON Commands", Label("json"), func() {
 		})
 
 		It("should JSONMSet", Label("json.mset", "json", "NonRedisEnterprise"), func() {
-			doc1 := redis.JSONSetArgs{Key: "mset1", Path: "$", Value: `{"a": 1}`}
-			doc2 := redis.JSONSetArgs{Key: "mset2", Path: "$", Value: 2}
-			docs := []redis.JSONSetArgs{doc1, doc2}
+			doc1 := dicedb.JSONSetArgs{Key: "mset1", Path: "$", Value: `{"a": 1}`}
+			doc2 := dicedb.JSONSetArgs{Key: "mset2", Path: "$", Value: 2}
+			docs := []dicedb.JSONSetArgs{doc1, doc2}
 
 			mSetResult, err := client.JSONMSetArgs(ctx, docs).Result()
 			Expect(err).NotTo(HaveOccurred())

@@ -1,4 +1,4 @@
-package redis_test
+package dicedb_test
 
 import (
 	"context"
@@ -36,10 +36,10 @@ func libCodeWithConfig(libName string) string {
 
 var _ = Describe("RedisGears commands", Label("gears"), func() {
 	ctx := context.TODO()
-	var client *redis.Client
+	var client *dicedb.Client
 
 	BeforeEach(func() {
-		client = redis.NewClient(&redis.Options{Addr: ":6379"})
+		client = dicedb.NewClient(&dicedb.Options{Addr: ":6379"})
 		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 		client.TFunctionDelete(ctx, "lib1")
 	})
@@ -52,7 +52,7 @@ var _ = Describe("RedisGears commands", Label("gears"), func() {
 		resultAdd, err := client.TFunctionLoad(ctx, libCode("lib1")).Result()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(resultAdd).To(BeEquivalentTo("OK"))
-		opt := &redis.TFunctionLoadOptions{Replace: true, Config: `{"last_update_field_name":"last_update"}`}
+		opt := &dicedb.TFunctionLoadOptions{Replace: true, Config: `{"last_update_field_name":"last_update"}`}
 		resultAdd, err = client.TFunctionLoadArgs(ctx, libCodeWithConfig("lib1"), opt).Result()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(resultAdd).To(BeEquivalentTo("OK"))
@@ -64,7 +64,7 @@ var _ = Describe("RedisGears commands", Label("gears"), func() {
 		resultList, err := client.TFunctionList(ctx).Result()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(resultList[0]["engine"]).To(BeEquivalentTo("js"))
-		opt := &redis.TFunctionListOptions{Withcode: true, Verbose: 2}
+		opt := &dicedb.TFunctionListOptions{Withcode: true, Verbose: 2}
 		resultListArgs, err := client.TFunctionListArgs(ctx, opt).Result()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(resultListArgs[0]["code"]).NotTo(BeEquivalentTo(""))
@@ -85,7 +85,7 @@ var _ = Describe("RedisGears commands", Label("gears"), func() {
 		resultAdd, err := client.TFunctionLoad(ctx, libCode("lib1")).Result()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(resultAdd).To(BeEquivalentTo("OK"))
-		opt := &redis.TFCallOptions{Arguments: []string{"foo", "bar"}}
+		opt := &dicedb.TFCallOptions{Arguments: []string{"foo", "bar"}}
 		resultAdd, err = client.TFCallArgs(ctx, "lib1", "foo", 0, opt).Result()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(resultAdd).To(BeEquivalentTo("bar"))
@@ -106,7 +106,7 @@ var _ = Describe("RedisGears commands", Label("gears"), func() {
 		resultAdd, err := client.TFunctionLoad(ctx, libCode("lib1")).Result()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(resultAdd).To(BeEquivalentTo("OK"))
-		opt := &redis.TFCallOptions{Arguments: []string{"foo", "bar"}}
+		opt := &dicedb.TFCallOptions{Arguments: []string{"foo", "bar"}}
 		resultAdd, err = client.TFCallASYNCArgs(ctx, "lib1", "foo", 0, opt).Result()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(resultAdd).To(BeEquivalentTo("bar"))

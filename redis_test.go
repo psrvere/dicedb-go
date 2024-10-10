@@ -1,4 +1,4 @@
-package redis_test
+package dicedb_test
 
 import (
 	"bytes"
@@ -17,24 +17,24 @@ import (
 
 type redisHookError struct{}
 
-var _ redis.Hook = redisHookError{}
+var _ dicedb.Hook = redisHookError{}
 
-func (redisHookError) DialHook(hook redis.DialHook) redis.DialHook {
+func (redisHookError) DialHook(hook dicedb.DialHook) dicedb.DialHook {
 	return hook
 }
 
-func (redisHookError) ProcessHook(hook redis.ProcessHook) redis.ProcessHook {
-	return func(ctx context.Context, cmd redis.Cmder) error {
+func (redisHookError) ProcessHook(hook dicedb.ProcessHook) dicedb.ProcessHook {
+	return func(ctx context.Context, cmd dicedb.Cmder) error {
 		return errors.New("hook error")
 	}
 }
 
-func (redisHookError) ProcessPipelineHook(hook redis.ProcessPipelineHook) redis.ProcessPipelineHook {
+func (redisHookError) ProcessPipelineHook(hook dicedb.ProcessPipelineHook) dicedb.ProcessPipelineHook {
 	return hook
 }
 
 func TestHookError(t *testing.T) {
-	rdb := redis.NewClient(&redis.Options{
+	rdb := dicedb.NewClient(&dicedb.Options{
 		Addr: ":6379",
 	})
 	rdb.AddHook(redisHookError{})
@@ -53,10 +53,10 @@ func TestHookError(t *testing.T) {
 //------------------------------------------------------------------------------
 
 var _ = Describe("Client", func() {
-	var client *redis.Client
+	var client *dicedb.Client
 
 	BeforeEach(func() {
-		client = redis.NewClient(redisOptions())
+		client = dicedb.NewClient(redisOptions())
 		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 	})
 
@@ -98,11 +98,11 @@ var _ = Describe("Client", func() {
 	})
 
 	It("should return pool stats", func() {
-		Expect(client.PoolStats()).To(BeAssignableToTypeOf(&redis.PoolStats{}))
+		Expect(client.PoolStats()).To(BeAssignableToTypeOf(&dicedb.PoolStats{}))
 	})
 
 	It("should support custom dialers", func() {
-		custom := redis.NewClient(&redis.Options{
+		custom := dicedb.NewClient(&dicedb.Options{
 			Network: "tcp",
 			Addr:    redisAddr,
 			Dialer: func(ctx context.Context, network, addr string) (net.Conn, error) {
@@ -133,8 +133,8 @@ var _ = Describe("Client", func() {
 	})
 
 	It("should close Tx without closing the client", func() {
-		err := client.Watch(ctx, func(tx *redis.Tx) error {
-			_, err := tx.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
+		err := client.Watch(ctx, func(tx *dicedb.Tx) error {
+			_, err := tx.TxPipelined(ctx, func(pipe dicedb.Pipeliner) error {
 				pipe.Ping(ctx)
 				return nil
 			})
@@ -156,19 +156,19 @@ var _ = Describe("Client", func() {
 	})
 
 	It("should select DB", Label("NonRedisEnterprise"), func() {
-		db2 := redis.NewClient(&redis.Options{
+		db2 := dicedb.NewClient(&dicedb.Options{
 			Addr: redisAddr,
 			DB:   2,
 		})
 		Expect(db2.FlushDB(ctx).Err()).NotTo(HaveOccurred())
-		Expect(db2.Get(ctx, "db").Err()).To(Equal(redis.Nil))
+		Expect(db2.Get(ctx, "db").Err()).To(Equal(dicedb.Nil))
 		Expect(db2.Set(ctx, "db", 2, 0).Err()).NotTo(HaveOccurred())
 
 		n, err := db2.Get(ctx, "db").Int64()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(n).To(Equal(int64(2)))
 
-		Expect(client.Get(ctx, "db").Err()).To(Equal(redis.Nil))
+		Expect(client.Get(ctx, "db").Err()).To(Equal(dicedb.Nil))
 
 		Expect(db2.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 		Expect(db2.Close()).NotTo(HaveOccurred())
@@ -177,7 +177,7 @@ var _ = Describe("Client", func() {
 	It("should client setname", func() {
 		opt := redisOptions()
 		opt.ClientName = "hi"
-		db := redis.NewClient(opt)
+		db := dicedb.NewClient(opt)
 
 		defer func() {
 			Expect(db.Close()).NotTo(HaveOccurred())
@@ -192,7 +192,7 @@ var _ = Describe("Client", func() {
 	It("should client PROTO 2", func() {
 		opt := redisOptions()
 		opt.Protocol = 2
-		db := redis.NewClient(opt)
+		db := dicedb.NewClient(opt)
 
 		defer func() {
 			Expect(db.Close()).NotTo(HaveOccurred())
@@ -205,7 +205,7 @@ var _ = Describe("Client", func() {
 
 	It("should client PROTO 3", func() {
 		opt := redisOptions()
-		db := redis.NewClient(opt)
+		db := dicedb.NewClient(opt)
 
 		defer func() {
 			Expect(db.Close()).NotTo(HaveOccurred())
@@ -217,7 +217,7 @@ var _ = Describe("Client", func() {
 	})
 
 	It("processes custom commands", func() {
-		cmd := redis.NewCmd(ctx, "PING")
+		cmd := dicedb.NewCmd(ctx, "PING")
 		_ = client.Process(ctx, cmd)
 
 		// Flush buffers.
@@ -230,7 +230,7 @@ var _ = Describe("Client", func() {
 	It("should retry command on network error", func() {
 		Expect(client.Close()).NotTo(HaveOccurred())
 
-		client = redis.NewClient(&redis.Options{
+		client = dicedb.NewClient(&dicedb.Options{
 			Addr:       redisAddr,
 			MaxRetries: 1,
 		})
@@ -247,13 +247,13 @@ var _ = Describe("Client", func() {
 	})
 
 	It("should retry with backoff", func() {
-		clientNoRetry := redis.NewClient(&redis.Options{
+		clientNoRetry := dicedb.NewClient(&dicedb.Options{
 			Addr:       ":1234",
 			MaxRetries: -1,
 		})
 		defer clientNoRetry.Close()
 
-		clientRetry := redis.NewClient(&redis.Options{
+		clientRetry := dicedb.NewClient(&dicedb.Options{
 			Addr:            ":1234",
 			MaxRetries:      5,
 			MaxRetryBackoff: 128 * time.Millisecond,
@@ -315,7 +315,7 @@ var _ = Describe("Client", func() {
 
 		// Reconnect to get new connection.
 		Expect(client.Close()).NotTo(HaveOccurred())
-		client = redis.NewClient(redisOptions())
+		client = dicedb.NewClient(redisOptions())
 
 		got, err := client.Get(ctx, "key").Bytes()
 		Expect(err).NotTo(HaveOccurred())
@@ -348,7 +348,7 @@ var _ = Describe("Client", func() {
 
 	It("should Conn", func() {
 		err := client.Conn().Get(ctx, "this-key-does-not-exist").Err()
-		Expect(err).To(Equal(redis.Nil))
+		Expect(err).To(Equal(dicedb.Nil))
 	})
 
 	It("should set and scan net.IP", func() {
@@ -365,8 +365,8 @@ var _ = Describe("Client", func() {
 })
 
 var _ = Describe("Client timeout", func() {
-	var opt *redis.Options
-	var client *redis.Client
+	var opt *dicedb.Options
+	var client *dicedb.Client
 
 	AfterEach(func() {
 		Expect(client.Close()).NotTo(HaveOccurred())
@@ -380,7 +380,7 @@ var _ = Describe("Client timeout", func() {
 		})
 
 		It("Pipeline timeouts", func() {
-			_, err := client.Pipelined(ctx, func(pipe redis.Pipeliner) error {
+			_, err := client.Pipelined(ctx, func(pipe dicedb.Pipeliner) error {
 				pipe.Ping(ctx)
 				return nil
 			})
@@ -402,7 +402,7 @@ var _ = Describe("Client timeout", func() {
 		})
 
 		It("Tx timeouts", func() {
-			err := client.Watch(ctx, func(tx *redis.Tx) error {
+			err := client.Watch(ctx, func(tx *dicedb.Tx) error {
 				return tx.Ping(ctx).Err()
 			})
 			Expect(err).To(HaveOccurred())
@@ -410,8 +410,8 @@ var _ = Describe("Client timeout", func() {
 		})
 
 		It("Tx Pipeline timeouts", func() {
-			err := client.Watch(ctx, func(tx *redis.Tx) error {
-				_, err := tx.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
+			err := client.Watch(ctx, func(tx *dicedb.Tx) error {
+				_, err := tx.TxPipelined(ctx, func(pipe dicedb.Pipeliner) error {
 					pipe.Ping(ctx)
 					return nil
 				})
@@ -427,7 +427,7 @@ var _ = Describe("Client timeout", func() {
 			opt = redisOptions()
 			opt.ReadTimeout = time.Nanosecond
 			opt.WriteTimeout = -1
-			client = redis.NewClient(opt)
+			client = dicedb.NewClient(opt)
 		})
 
 		testTimeout()
@@ -438,7 +438,7 @@ var _ = Describe("Client timeout", func() {
 			opt = redisOptions()
 			opt.ReadTimeout = -1
 			opt.WriteTimeout = time.Nanosecond
-			client = redis.NewClient(opt)
+			client = dicedb.NewClient(opt)
 		})
 
 		testTimeout()
@@ -446,16 +446,16 @@ var _ = Describe("Client timeout", func() {
 })
 
 var _ = Describe("Client OnConnect", func() {
-	var client *redis.Client
+	var client *dicedb.Client
 
 	BeforeEach(func() {
 		opt := redisOptions()
 		opt.DB = 0
-		opt.OnConnect = func(ctx context.Context, cn *redis.Conn) error {
+		opt.OnConnect = func(ctx context.Context, cn *dicedb.Conn) error {
 			return cn.ClientSetName(ctx, "on_connect").Err()
 		}
 
-		client = redis.NewClient(opt)
+		client = dicedb.NewClient(opt)
 	})
 
 	AfterEach(func() {
@@ -470,14 +470,14 @@ var _ = Describe("Client OnConnect", func() {
 })
 
 var _ = Describe("Client context cancellation", func() {
-	var opt *redis.Options
-	var client *redis.Client
+	var opt *dicedb.Options
+	var client *dicedb.Client
 
 	BeforeEach(func() {
 		opt = redisOptions()
 		opt.ReadTimeout = -1
 		opt.WriteTimeout = -1
-		client = redis.NewClient(opt)
+		client = dicedb.NewClient(opt)
 	})
 
 	AfterEach(func() {
@@ -495,10 +495,10 @@ var _ = Describe("Client context cancellation", func() {
 })
 
 var _ = Describe("Conn", func() {
-	var client *redis.Client
+	var client *dicedb.Client
 
 	BeforeEach(func() {
-		client = redis.NewClient(redisOptions())
+		client = dicedb.NewClient(redisOptions())
 		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 	})
 
@@ -517,10 +517,10 @@ var _ = Describe("Conn", func() {
 })
 
 var _ = Describe("Hook", func() {
-	var client *redis.Client
+	var client *dicedb.Client
 
 	BeforeEach(func() {
-		client = redis.NewClient(redisOptions())
+		client = dicedb.NewClient(redisOptions())
 		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 	})
 
@@ -532,8 +532,8 @@ var _ = Describe("Hook", func() {
 	It("fifo", func() {
 		var res []string
 		client.AddHook(&hook{
-			processHook: func(hook redis.ProcessHook) redis.ProcessHook {
-				return func(ctx context.Context, cmd redis.Cmder) error {
+			processHook: func(hook dicedb.ProcessHook) dicedb.ProcessHook {
+				return func(ctx context.Context, cmd dicedb.Cmder) error {
 					res = append(res, "hook-1-process-start")
 					err := hook(ctx, cmd)
 					res = append(res, "hook-1-process-end")
@@ -542,8 +542,8 @@ var _ = Describe("Hook", func() {
 			},
 		})
 		client.AddHook(&hook{
-			processHook: func(hook redis.ProcessHook) redis.ProcessHook {
-				return func(ctx context.Context, cmd redis.Cmder) error {
+			processHook: func(hook dicedb.ProcessHook) dicedb.ProcessHook {
+				return func(ctx context.Context, cmd dicedb.Cmder) error {
 					res = append(res, "hook-2-process-start")
 					err := hook(ctx, cmd)
 					res = append(res, "hook-2-process-end")
@@ -565,8 +565,8 @@ var _ = Describe("Hook", func() {
 
 	It("wrapped error in a hook", func() {
 		client.AddHook(&hook{
-			processHook: func(hook redis.ProcessHook) redis.ProcessHook {
-				return func(ctx context.Context, cmd redis.Cmder) error {
+			processHook: func(hook dicedb.ProcessHook) dicedb.ProcessHook {
+				return func(ctx context.Context, cmd dicedb.Cmder) error {
 					if err := hook(ctx, cmd); err != nil {
 						return fmt.Errorf("wrapped error: %w", err)
 					}
@@ -576,7 +576,7 @@ var _ = Describe("Hook", func() {
 		})
 		client.ScriptFlush(ctx)
 
-		script := redis.NewScript(`return 'Script and hook'`)
+		script := dicedb.NewScript(`return 'Script and hook'`)
 
 		cmd := script.Run(ctx, client, nil)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
@@ -585,12 +585,12 @@ var _ = Describe("Hook", func() {
 })
 
 var _ = Describe("Hook with MinIdleConns", func() {
-	var client *redis.Client
+	var client *dicedb.Client
 
 	BeforeEach(func() {
 		options := redisOptions()
 		options.MinIdleConns = 1
-		client = redis.NewClient(options)
+		client = dicedb.NewClient(options)
 		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 	})
 
@@ -602,8 +602,8 @@ var _ = Describe("Hook with MinIdleConns", func() {
 	It("fifo", func() {
 		var res []string
 		client.AddHook(&hook{
-			processHook: func(hook redis.ProcessHook) redis.ProcessHook {
-				return func(ctx context.Context, cmd redis.Cmder) error {
+			processHook: func(hook dicedb.ProcessHook) dicedb.ProcessHook {
+				return func(ctx context.Context, cmd dicedb.Cmder) error {
 					res = append(res, "hook-1-process-start")
 					err := hook(ctx, cmd)
 					res = append(res, "hook-1-process-end")
@@ -612,8 +612,8 @@ var _ = Describe("Hook with MinIdleConns", func() {
 			},
 		})
 		client.AddHook(&hook{
-			processHook: func(hook redis.ProcessHook) redis.ProcessHook {
-				return func(ctx context.Context, cmd redis.Cmder) error {
+			processHook: func(hook dicedb.ProcessHook) dicedb.ProcessHook {
+				return func(ctx context.Context, cmd dicedb.Cmder) error {
 					res = append(res, "hook-2-process-start")
 					err := hook(ctx, cmd)
 					res = append(res, "hook-2-process-end")

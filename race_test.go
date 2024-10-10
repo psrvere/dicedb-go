@@ -1,4 +1,4 @@
-package redis_test
+package dicedb_test
 
 import (
 	"bytes"
@@ -16,11 +16,11 @@ import (
 )
 
 var _ = Describe("races", func() {
-	var client *redis.Client
+	var client *dicedb.Client
 	var C, N int
 
 	BeforeEach(func() {
-		client = redis.NewClient(redisOptions())
+		client = dicedb.NewClient(redisOptions())
 		Expect(client.FlushDB(ctx).Err()).To(BeNil())
 
 		C, N = 10, 1000
@@ -114,7 +114,7 @@ var _ = Describe("races", func() {
 
 		// Reconnect to get new connection.
 		Expect(client.Close()).To(BeNil())
-		client = redis.NewClient(redisOptions())
+		client = dicedb.NewClient(redisOptions())
 
 		perform(C, func(id int) {
 			for i := 0; i < N; i++ {
@@ -144,7 +144,7 @@ var _ = Describe("races", func() {
 		perform(C, func(id int) {
 			opt := redisOptions()
 			opt.DB = id
-			client := redis.NewClient(opt)
+			client := dicedb.NewClient(opt)
 			for i := 0; i < N; i++ {
 				err := client.Set(ctx, "db", id, 0).Err()
 				Expect(err).NotTo(HaveOccurred())
@@ -167,7 +167,7 @@ var _ = Describe("races", func() {
 			opt := redisOptions()
 			opt.DB = id
 			opt.ReadTimeout = time.Nanosecond
-			client := redis.NewClient(opt)
+			client := dicedb.NewClient(opt)
 
 			perform(C, func(id int) {
 				err := client.Ping(ctx).Err()
@@ -186,22 +186,22 @@ var _ = Describe("races", func() {
 
 		perform(C, func(id int) {
 			for i := 0; i < N; i++ {
-				err := client.Watch(ctx, func(tx *redis.Tx) error {
+				err := client.Watch(ctx, func(tx *dicedb.Tx) error {
 					val, err := tx.Get(ctx, "key").Result()
 					Expect(err).NotTo(HaveOccurred())
-					Expect(val).NotTo(Equal(redis.Nil))
+					Expect(val).NotTo(Equal(dicedb.Nil))
 
 					num, err := strconv.ParseInt(val, 10, 64)
 					Expect(err).NotTo(HaveOccurred())
 
-					cmds, err := tx.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
+					cmds, err := tx.TxPipelined(ctx, func(pipe dicedb.Pipeliner) error {
 						pipe.Set(ctx, "key", strconv.FormatInt(num+1, 10), 0)
 						return nil
 					})
 					Expect(cmds).To(HaveLen(1))
 					return err
 				}, "key")
-				if err == redis.TxFailedErr {
+				if err == dicedb.TxFailedErr {
 					i--
 					continue
 				}
@@ -221,7 +221,7 @@ var _ = Describe("races", func() {
 			for {
 				v, err := client.BLPop(ctx, 5*time.Second, "list").Result()
 				if err != nil {
-					if err == redis.Nil {
+					if err == dicedb.Nil {
 						break
 					}
 					Expect(err).NotTo(HaveOccurred())
@@ -244,7 +244,7 @@ var _ = Describe("races", func() {
 })
 
 var _ = Describe("cluster races", Label("NonRedisEnterprise"), func() {
-	var client *redis.ClusterClient
+	var client *dicedb.ClusterClient
 	var C, N int
 
 	BeforeEach(func() {
@@ -279,7 +279,7 @@ var _ = Describe("cluster races", Label("NonRedisEnterprise"), func() {
 			for i := 0; i < N; i++ {
 				key := fmt.Sprintf("key_%d_%d", id, i)
 				_, err := client.Get(ctx, key).Result()
-				Expect(err).To(Equal(redis.Nil))
+				Expect(err).To(Equal(dicedb.Nil))
 			}
 		})
 	})
@@ -303,7 +303,7 @@ var _ = Describe("cluster races", Label("NonRedisEnterprise"), func() {
 		pubsub := client.Subscribe(ctx)
 		defer pubsub.Close()
 
-		pubsub.Channel(redis.WithChannelHealthCheckInterval(time.Millisecond))
+		pubsub.Channel(dicedb.WithChannelHealthCheckInterval(time.Millisecond))
 		for i := 0; i < 100; i++ {
 			key := fmt.Sprintf("channel_%d", i)
 			pubsub.Subscribe(ctx, key)

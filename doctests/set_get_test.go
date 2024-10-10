@@ -12,7 +12,7 @@ import (
 func ExampleClient_Set_and_get() {
 	ctx := context.Background()
 
-	rdb := redis.NewClient(&redis.Options{
+	rdb := dicedb.NewClient(&dicedb.Options{
 		Addr:     "localhost:6379",
 		Password: "", // no password docs
 		DB:       0,  // use default DB

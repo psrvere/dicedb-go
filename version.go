@@ -1,4 +1,4 @@
-package redis
+package dicedb
 
 // Version is the current release version.
 func Version() string {

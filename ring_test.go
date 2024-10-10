@@ -1,4 +1,4 @@
-package redis_test
+package dicedb_test
 
 import (
 	"context"
@@ -18,15 +18,15 @@ import (
 var _ = Describe("Redis Ring PROTO 2", func() {
 	const heartbeat = 100 * time.Millisecond
 
-	var ring *redis.Ring
+	var ring *dicedb.Ring
 
 	BeforeEach(func() {
 		opt := redisRingOptions()
 		opt.Protocol = 2
 		opt.HeartbeatFrequency = heartbeat
-		ring = redis.NewRing(opt)
+		ring = dicedb.NewRing(opt)
 
-		err := ring.ForEachShard(ctx, func(ctx context.Context, cl *redis.Client) error {
+		err := ring.ForEachShard(ctx, func(ctx context.Context, cl *dicedb.Client) error {
 			return cl.FlushDB(ctx).Err()
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -37,7 +37,7 @@ var _ = Describe("Redis Ring PROTO 2", func() {
 	})
 
 	It("should ring PROTO 2", func() {
-		_ = ring.ForEachShard(ctx, func(ctx context.Context, c *redis.Client) error {
+		_ = ring.ForEachShard(ctx, func(ctx context.Context, c *dicedb.Client) error {
 			val, err := c.Do(ctx, "HELLO").Result()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(val).Should(ContainElements("proto", int64(2)))
@@ -49,7 +49,7 @@ var _ = Describe("Redis Ring PROTO 2", func() {
 var _ = Describe("Redis Ring", func() {
 	const heartbeat = 100 * time.Millisecond
 
-	var ring *redis.Ring
+	var ring *dicedb.Ring
 
 	setRingKeys := func() {
 		for i := 0; i < 100; i++ {
@@ -62,9 +62,9 @@ var _ = Describe("Redis Ring", func() {
 		opt := redisRingOptions()
 		opt.ClientName = "ring_hi"
 		opt.HeartbeatFrequency = heartbeat
-		ring = redis.NewRing(opt)
+		ring = dicedb.NewRing(opt)
 
-		err := ring.ForEachShard(ctx, func(ctx context.Context, cl *redis.Client) error {
+		err := ring.ForEachShard(ctx, func(ctx context.Context, cl *dicedb.Client) error {
 			return cl.FlushDB(ctx).Err()
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -83,12 +83,12 @@ var _ = Describe("Redis Ring", func() {
 	})
 
 	It("should ring client setname", func() {
-		err := ring.ForEachShard(ctx, func(ctx context.Context, c *redis.Client) error {
+		err := ring.ForEachShard(ctx, func(ctx context.Context, c *dicedb.Client) error {
 			return c.Ping(ctx).Err()
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		_ = ring.ForEachShard(ctx, func(ctx context.Context, c *redis.Client) error {
+		_ = ring.ForEachShard(ctx, func(ctx context.Context, c *dicedb.Client) error {
 			val, err := c.ClientList(ctx).Result()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(val).Should(ContainSubstring("name=ring_hi"))
@@ -97,7 +97,7 @@ var _ = Describe("Redis Ring", func() {
 	})
 
 	It("should ring PROTO 3", func() {
-		_ = ring.ForEachShard(ctx, func(ctx context.Context, c *redis.Client) error {
+		_ = ring.ForEachShard(ctx, func(ctx context.Context, c *dicedb.Client) error {
 			val, err := c.Do(ctx, "HELLO").Result()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(val).Should(HaveKeyWithValue("proto", int64(3)))
@@ -114,7 +114,7 @@ var _ = Describe("Redis Ring", func() {
 	})
 
 	It("distributes keys when using EVAL", func() {
-		script := redis.NewScript(`
+		script := dicedb.NewScript(`
 			local r = redis.call('SET', KEYS[1], ARGV[1])
 			return r
 		`)
@@ -255,7 +255,7 @@ var _ = Describe("Redis Ring", func() {
 
 			for _, cmd := range cmds {
 				Expect(cmd.Err()).NotTo(HaveOccurred())
-				Expect(cmd.(*redis.StatusCmd).Val()).To(Equal("OK"))
+				Expect(cmd.(*dicedb.StatusCmd).Val()).To(Equal("OK"))
 			}
 
 			// Both shards should have some keys now.
@@ -272,7 +272,7 @@ var _ = Describe("Redis Ring", func() {
 				keys = append(keys, string(key))
 			}
 
-			_, err := ring.Pipelined(ctx, func(pipe redis.Pipeliner) error {
+			_, err := ring.Pipelined(ctx, func(pipe dicedb.Pipeliner) error {
 				for _, key := range keys {
 					pipe.Set(ctx, key, "value", 0).Err()
 				}
@@ -288,7 +288,7 @@ var _ = Describe("Redis Ring", func() {
 		})
 
 		It("supports hash tags", func() {
-			_, err := ring.Pipelined(ctx, func(pipe redis.Pipeliner) error {
+			_, err := ring.Pipelined(ctx, func(pipe dicedb.Pipeliner) error {
 				for i := 0; i < 100; i++ {
 					pipe.Set(ctx, fmt.Sprintf("key%d{tag}", i), "value", 0).Err()
 				}
@@ -304,12 +304,12 @@ var _ = Describe("Redis Ring", func() {
 	Describe("new client callback", func() {
 		It("can be initialized with a new client callback", func() {
 			opts := redisRingOptions()
-			opts.NewClient = func(opt *redis.Options) *redis.Client {
+			opts.NewClient = func(opt *dicedb.Options) *dicedb.Client {
 				opt.Username = "username1"
 				opt.Password = "password1"
-				return redis.NewClient(opt)
+				return dicedb.NewClient(opt)
 			}
-			ring = redis.NewRing(opts)
+			ring = dicedb.NewRing(opts)
 
 			err := ring.Ping(ctx).Err()
 			Expect(err).To(HaveOccurred())
@@ -323,7 +323,7 @@ var _ = Describe("Redis Ring", func() {
 			// here, the health check time is set to 72 hours to avoid health check
 			opt := redisRingOptions()
 			opt.HeartbeatFrequency = 72 * time.Hour
-			ring = redis.NewRing(opt)
+			ring = dicedb.NewRing(opt)
 		})
 		It("supports Process hook", func() {
 			err := ring.Ping(ctx).Err()
@@ -332,8 +332,8 @@ var _ = Describe("Redis Ring", func() {
 			var stack []string
 
 			ring.AddHook(&hook{
-				processHook: func(hook redis.ProcessHook) redis.ProcessHook {
-					return func(ctx context.Context, cmd redis.Cmder) error {
+				processHook: func(hook dicedb.ProcessHook) dicedb.ProcessHook {
+					return func(ctx context.Context, cmd dicedb.Cmder) error {
 						Expect(cmd.String()).To(Equal("ping: "))
 						stack = append(stack, "ring.BeforeProcess")
 
@@ -347,10 +347,10 @@ var _ = Describe("Redis Ring", func() {
 				},
 			})
 
-			ring.ForEachShard(ctx, func(ctx context.Context, shard *redis.Client) error {
+			ring.ForEachShard(ctx, func(ctx context.Context, shard *dicedb.Client) error {
 				shard.AddHook(&hook{
-					processHook: func(hook redis.ProcessHook) redis.ProcessHook {
-						return func(ctx context.Context, cmd redis.Cmder) error {
+					processHook: func(hook dicedb.ProcessHook) dicedb.ProcessHook {
+						return func(ctx context.Context, cmd dicedb.Cmder) error {
 							Expect(cmd.String()).To(Equal("ping: "))
 							stack = append(stack, "shard.BeforeProcess")
 
@@ -383,8 +383,8 @@ var _ = Describe("Redis Ring", func() {
 			var stack []string
 
 			ring.AddHook(&hook{
-				processPipelineHook: func(hook redis.ProcessPipelineHook) redis.ProcessPipelineHook {
-					return func(ctx context.Context, cmds []redis.Cmder) error {
+				processPipelineHook: func(hook dicedb.ProcessPipelineHook) dicedb.ProcessPipelineHook {
+					return func(ctx context.Context, cmds []dicedb.Cmder) error {
 						Expect(cmds).To(HaveLen(1))
 						Expect(cmds[0].String()).To(Equal("ping: "))
 						stack = append(stack, "ring.BeforeProcessPipeline")
@@ -400,10 +400,10 @@ var _ = Describe("Redis Ring", func() {
 				},
 			})
 
-			ring.ForEachShard(ctx, func(ctx context.Context, shard *redis.Client) error {
+			ring.ForEachShard(ctx, func(ctx context.Context, shard *dicedb.Client) error {
 				shard.AddHook(&hook{
-					processPipelineHook: func(hook redis.ProcessPipelineHook) redis.ProcessPipelineHook {
-						return func(ctx context.Context, cmds []redis.Cmder) error {
+					processPipelineHook: func(hook dicedb.ProcessPipelineHook) dicedb.ProcessPipelineHook {
+						return func(ctx context.Context, cmds []dicedb.Cmder) error {
 							Expect(cmds).To(HaveLen(1))
 							Expect(cmds[0].String()).To(Equal("ping: "))
 							stack = append(stack, "shard.BeforeProcessPipeline")
@@ -421,7 +421,7 @@ var _ = Describe("Redis Ring", func() {
 				return nil
 			})
 
-			_, err = ring.Pipelined(ctx, func(pipe redis.Pipeliner) error {
+			_, err = ring.Pipelined(ctx, func(pipe dicedb.Pipeliner) error {
 				pipe.Ping(ctx)
 				return nil
 			})
@@ -441,8 +441,8 @@ var _ = Describe("Redis Ring", func() {
 			var stack []string
 
 			ring.AddHook(&hook{
-				processPipelineHook: func(hook redis.ProcessPipelineHook) redis.ProcessPipelineHook {
-					return func(ctx context.Context, cmds []redis.Cmder) error {
+				processPipelineHook: func(hook dicedb.ProcessPipelineHook) dicedb.ProcessPipelineHook {
+					return func(ctx context.Context, cmds []dicedb.Cmder) error {
 						defer GinkgoRecover()
 
 						Expect(cmds).To(HaveLen(3))
@@ -460,10 +460,10 @@ var _ = Describe("Redis Ring", func() {
 				},
 			})
 
-			ring.ForEachShard(ctx, func(ctx context.Context, shard *redis.Client) error {
+			ring.ForEachShard(ctx, func(ctx context.Context, shard *dicedb.Client) error {
 				shard.AddHook(&hook{
-					processPipelineHook: func(hook redis.ProcessPipelineHook) redis.ProcessPipelineHook {
-						return func(ctx context.Context, cmds []redis.Cmder) error {
+					processPipelineHook: func(hook dicedb.ProcessPipelineHook) dicedb.ProcessPipelineHook {
+						return func(ctx context.Context, cmds []dicedb.Cmder) error {
 							defer GinkgoRecover()
 
 							Expect(cmds).To(HaveLen(3))
@@ -483,7 +483,7 @@ var _ = Describe("Redis Ring", func() {
 				return nil
 			})
 
-			_, err = ring.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
+			_, err = ring.TxPipelined(ctx, func(pipe dicedb.Pipeliner) error {
 				pipe.Ping(ctx)
 				return nil
 			})
@@ -499,10 +499,10 @@ var _ = Describe("Redis Ring", func() {
 })
 
 var _ = Describe("empty Redis Ring", func() {
-	var ring *redis.Ring
+	var ring *dicedb.Ring
 
 	BeforeEach(func() {
-		ring = redis.NewRing(&redis.RingOptions{})
+		ring = dicedb.NewRing(&dicedb.RingOptions{})
 	})
 
 	AfterEach(func() {
@@ -515,7 +515,7 @@ var _ = Describe("empty Redis Ring", func() {
 	})
 
 	It("pipeline returns an error", func() {
-		_, err := ring.Pipelined(ctx, func(pipe redis.Pipeliner) error {
+		_, err := ring.Pipelined(ctx, func(pipe dicedb.Pipeliner) error {
 			pipe.Ping(ctx)
 			return nil
 		})
@@ -526,14 +526,14 @@ var _ = Describe("empty Redis Ring", func() {
 var _ = Describe("Ring watch", func() {
 	const heartbeat = 100 * time.Millisecond
 
-	var ring *redis.Ring
+	var ring *dicedb.Ring
 
 	BeforeEach(func() {
 		opt := redisRingOptions()
 		opt.HeartbeatFrequency = heartbeat
-		ring = redis.NewRing(opt)
+		ring = dicedb.NewRing(opt)
 
-		err := ring.ForEachShard(ctx, func(ctx context.Context, cl *redis.Client) error {
+		err := ring.ForEachShard(ctx, func(ctx context.Context, cl *dicedb.Client) error {
 			return cl.FlushDB(ctx).Err()
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -548,19 +548,19 @@ var _ = Describe("Ring watch", func() {
 
 		// Transactionally increments key using GET and SET commands.
 		incr = func(key string) error {
-			err := ring.Watch(ctx, func(tx *redis.Tx) error {
+			err := ring.Watch(ctx, func(tx *dicedb.Tx) error {
 				n, err := tx.Get(ctx, key).Int64()
-				if err != nil && err != redis.Nil {
+				if err != nil && err != dicedb.Nil {
 					return err
 				}
 
-				_, err = tx.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
+				_, err = tx.TxPipelined(ctx, func(pipe dicedb.Pipeliner) error {
 					pipe.Set(ctx, key, strconv.FormatInt(n+1, 10), 0)
 					return nil
 				})
 				return err
 			}, key)
-			if err == redis.TxFailedErr {
+			if err == dicedb.TxFailedErr {
 				return incr(key)
 			}
 			return err
@@ -585,8 +585,8 @@ var _ = Describe("Ring watch", func() {
 	})
 
 	It("should discard", func() {
-		err := ring.Watch(ctx, func(tx *redis.Tx) error {
-			cmds, err := tx.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
+		err := ring.Watch(ctx, func(tx *dicedb.Tx) error {
+			cmds, err := tx.TxPipelined(ctx, func(pipe dicedb.Pipeliner) error {
 				pipe.Set(ctx, "{shard}key1", "hello1", 0)
 				pipe.Discard()
 				pipe.Set(ctx, "{shard}key2", "hello2", 0)
@@ -599,7 +599,7 @@ var _ = Describe("Ring watch", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		get := ring.Get(ctx, "{shard}key1")
-		Expect(get.Err()).To(Equal(redis.Nil))
+		Expect(get.Err()).To(Equal(dicedb.Nil))
 		Expect(get.Val()).To(Equal(""))
 
 		get = ring.Get(ctx, "{shard}key2")
@@ -608,8 +608,8 @@ var _ = Describe("Ring watch", func() {
 	})
 
 	It("returns no error when there are no commands", func() {
-		err := ring.Watch(ctx, func(tx *redis.Tx) error {
-			_, err := tx.TxPipelined(ctx, func(redis.Pipeliner) error { return nil })
+		err := ring.Watch(ctx, func(tx *dicedb.Tx) error {
+			_, err := tx.TxPipelined(ctx, func(dicedb.Pipeliner) error { return nil })
 			return err
 		}, "key")
 		Expect(err).NotTo(HaveOccurred())
@@ -622,8 +622,8 @@ var _ = Describe("Ring watch", func() {
 	It("should exec bulks", func() {
 		const N = 20000
 
-		err := ring.Watch(ctx, func(tx *redis.Tx) error {
-			cmds, err := tx.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
+		err := ring.Watch(ctx, func(tx *dicedb.Tx) error {
+			cmds, err := tx.TxPipelined(ctx, func(pipe dicedb.Pipeliner) error {
 				for i := 0; i < N; i++ {
 					pipe.Incr(ctx, "key")
 				}
@@ -651,22 +651,22 @@ var _ = Describe("Ring watch", func() {
 
 		perform(C, func(id int) {
 			for i := 0; i < N; i++ {
-				err := ring.Watch(ctx, func(tx *redis.Tx) error {
+				err := ring.Watch(ctx, func(tx *dicedb.Tx) error {
 					val, err := tx.Get(ctx, "key").Result()
 					Expect(err).NotTo(HaveOccurred())
-					Expect(val).NotTo(Equal(redis.Nil))
+					Expect(val).NotTo(Equal(dicedb.Nil))
 
 					num, err := strconv.ParseInt(val, 10, 64)
 					Expect(err).NotTo(HaveOccurred())
 
-					cmds, err := tx.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
+					cmds, err := tx.TxPipelined(ctx, func(pipe dicedb.Pipeliner) error {
 						pipe.Set(ctx, "key", strconv.FormatInt(num+1, 10), 0)
 						return nil
 					})
 					Expect(cmds).To(HaveLen(1))
 					return err
 				}, "key")
-				if err == redis.TxFailedErr {
+				if err == dicedb.TxFailedErr {
 					i--
 					continue
 				}
@@ -680,8 +680,8 @@ var _ = Describe("Ring watch", func() {
 	})
 
 	It("should close Tx without closing the client", func() {
-		err := ring.Watch(ctx, func(tx *redis.Tx) error {
-			_, err := tx.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
+		err := ring.Watch(ctx, func(tx *dicedb.Tx) error {
+			_, err := tx.TxPipelined(ctx, func(pipe dicedb.Pipeliner) error {
 				pipe.Ping(ctx)
 				return nil
 			})
@@ -701,13 +701,13 @@ var _ = Describe("Ring watch", func() {
 		//set a relatively large time here to avoid health checks.
 		opt := redisRingOptions()
 		opt.HeartbeatFrequency = 72 * time.Hour
-		ring = redis.NewRing(opt)
+		ring = dicedb.NewRing(opt)
 
 		perform(1000, func(id int) {
-			var ping *redis.StatusCmd
+			var ping *dicedb.StatusCmd
 
-			err := ring.Watch(ctx, func(tx *redis.Tx) error {
-				cmds, err := tx.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
+			err := ring.Watch(ctx, func(tx *dicedb.Tx) error {
+				cmds, err := tx.TxPipelined(ctx, func(pipe dicedb.Pipeliner) error {
 					ping = pipe.Ping(ctx)
 					return nil
 				})
@@ -721,7 +721,7 @@ var _ = Describe("Ring watch", func() {
 			Expect(ping.Val()).To(Equal("PONG"))
 		})
 
-		ring.ForEachShard(ctx, func(ctx context.Context, cl *redis.Client) error {
+		ring.ForEachShard(ctx, func(ctx context.Context, cl *dicedb.Client) error {
 			defer GinkgoRecover()
 
 			pool := cl.Pool()
@@ -737,7 +737,7 @@ var _ = Describe("Ring watch", func() {
 var _ = Describe("Ring Tx timeout", func() {
 	const heartbeat = 100 * time.Millisecond
 
-	var ring *redis.Ring
+	var ring *dicedb.Ring
 
 	AfterEach(func() {
 		_ = ring.Close()
@@ -745,7 +745,7 @@ var _ = Describe("Ring Tx timeout", func() {
 
 	testTimeout := func() {
 		It("Tx timeouts", func() {
-			err := ring.Watch(ctx, func(tx *redis.Tx) error {
+			err := ring.Watch(ctx, func(tx *dicedb.Tx) error {
 				return tx.Ping(ctx).Err()
 			}, "foo")
 			Expect(err).To(HaveOccurred())
@@ -753,8 +753,8 @@ var _ = Describe("Ring Tx timeout", func() {
 		})
 
 		It("Tx Pipeline timeouts", func() {
-			err := ring.Watch(ctx, func(tx *redis.Tx) error {
-				_, err := tx.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
+			err := ring.Watch(ctx, func(tx *dicedb.Tx) error {
+				_, err := tx.TxPipelined(ctx, func(pipe dicedb.Pipeliner) error {
 					pipe.Ping(ctx)
 					return nil
 				})
@@ -773,16 +773,16 @@ var _ = Describe("Ring Tx timeout", func() {
 			opt.ReadTimeout = 250 * time.Millisecond
 			opt.WriteTimeout = 250 * time.Millisecond
 			opt.HeartbeatFrequency = heartbeat
-			ring = redis.NewRing(opt)
+			ring = dicedb.NewRing(opt)
 
-			err := ring.ForEachShard(ctx, func(ctx context.Context, client *redis.Client) error {
+			err := ring.ForEachShard(ctx, func(ctx context.Context, client *dicedb.Client) error {
 				return client.ClientPause(ctx, pause).Err()
 			})
 			Expect(err).NotTo(HaveOccurred())
 		})
 
 		AfterEach(func() {
-			_ = ring.ForEachShard(ctx, func(ctx context.Context, client *redis.Client) error {
+			_ = ring.ForEachShard(ctx, func(ctx context.Context, client *dicedb.Client) error {
 				defer GinkgoRecover()
 				Eventually(func() error {
 					return client.Ping(ctx).Err()

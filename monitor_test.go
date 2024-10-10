@@ -1,4 +1,4 @@
-package redis_test
+package dicedb_test
 
 import (
 	"context"
@@ -15,10 +15,10 @@ import (
 
 var _ = Describe("Monitor command", Label("monitor"), func() {
 	ctx := context.TODO()
-	var client *redis.Client
+	var client *dicedb.Client
 
 	BeforeEach(func() {
-		client = redis.NewClient(&redis.Options{Addr: ":6379"})
+		client = dicedb.NewClient(&dicedb.Options{Addr: ":6379"})
 		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 	})
 
@@ -28,7 +28,7 @@ var _ = Describe("Monitor command", Label("monitor"), func() {
 
 	It("should monitor", Label("monitor"), func() {
 		ress := make(chan string)
-		client1 := redis.NewClient(&redis.Options{Addr: rediStackAddr})
+		client1 := dicedb.NewClient(&dicedb.Options{Addr: rediStackAddr})
 		mn := client1.Monitor(ctx, ress)
 		mn.Start()
 		// Wait for the Redis server to be in monitoring mode.
@@ -52,7 +52,7 @@ var _ = Describe("Monitor command", Label("monitor"), func() {
 
 func TestMonitorCommand(t *testing.T) {
 	ctx := context.TODO()
-	client := redis.NewClient(&redis.Options{Addr: ":6379"})
+	client := dicedb.NewClient(&dicedb.Options{Addr: ":6379"})
 	if err := client.FlushDB(ctx).Err(); err != nil {
 		t.Fatalf("FlushDB failed: %v", err)
 	}
@@ -63,8 +63,8 @@ func TestMonitorCommand(t *testing.T) {
 		}
 	}()
 
-	ress := make(chan string, 10)                             // Buffer to prevent blocking
-	client1 := redis.NewClient(&redis.Options{Addr: ":6379"}) // Adjust the Addr field as necessary
+	ress := make(chan string, 10)                               // Buffer to prevent blocking
+	client1 := dicedb.NewClient(&dicedb.Options{Addr: ":6379"}) // Adjust the Addr field as necessary
 	mn := client1.Monitor(ctx, ress)
 	mn.Start()
 	// Wait for the Redis server to be in monitoring mode.

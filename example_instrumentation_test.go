@@ -1,4 +1,4 @@
-package redis_test
+package dicedb_test
 
 import (
 	"context"
@@ -10,9 +10,9 @@ import (
 
 type redisHook struct{}
 
-var _ redis.Hook = redisHook{}
+var _ dicedb.Hook = redisHook{}
 
-func (redisHook) DialHook(hook redis.DialHook) redis.DialHook {
+func (redisHook) DialHook(hook dicedb.DialHook) dicedb.DialHook {
 	return func(ctx context.Context, network, addr string) (net.Conn, error) {
 		fmt.Printf("dialing %s %s\n", network, addr)
 		conn, err := hook(ctx, network, addr)
@@ -21,8 +21,8 @@ func (redisHook) DialHook(hook redis.DialHook) redis.DialHook {
 	}
 }
 
-func (redisHook) ProcessHook(hook redis.ProcessHook) redis.ProcessHook {
-	return func(ctx context.Context, cmd redis.Cmder) error {
+func (redisHook) ProcessHook(hook dicedb.ProcessHook) dicedb.ProcessHook {
+	return func(ctx context.Context, cmd dicedb.Cmder) error {
 		fmt.Printf("starting processing: <%s>\n", cmd)
 		err := hook(ctx, cmd)
 		fmt.Printf("finished processing: <%s>\n", cmd)
@@ -30,8 +30,8 @@ func (redisHook) ProcessHook(hook redis.ProcessHook) redis.ProcessHook {
 	}
 }
 
-func (redisHook) ProcessPipelineHook(hook redis.ProcessPipelineHook) redis.ProcessPipelineHook {
-	return func(ctx context.Context, cmds []redis.Cmder) error {
+func (redisHook) ProcessPipelineHook(hook dicedb.ProcessPipelineHook) dicedb.ProcessPipelineHook {
+	return func(ctx context.Context, cmds []dicedb.Cmder) error {
 		fmt.Printf("pipeline starting processing: %v\n", cmds)
 		err := hook(ctx, cmds)
 		fmt.Printf("pipeline finished processing: %v\n", cmds)
@@ -40,7 +40,7 @@ func (redisHook) ProcessPipelineHook(hook redis.ProcessPipelineHook) redis.Proce
 }
 
 func Example_instrumentation() {
-	rdb := redis.NewClient(&redis.Options{
+	rdb := dicedb.NewClient(&dicedb.Options{
 		Addr: ":6379",
 	})
 	rdb.AddHook(redisHook{})
@@ -53,12 +53,12 @@ func Example_instrumentation() {
 }
 
 func ExamplePipeline_instrumentation() {
-	rdb := redis.NewClient(&redis.Options{
+	rdb := dicedb.NewClient(&dicedb.Options{
 		Addr: ":6379",
 	})
 	rdb.AddHook(redisHook{})
 
-	rdb.Pipelined(ctx, func(pipe redis.Pipeliner) error {
+	rdb.Pipelined(ctx, func(pipe dicedb.Pipeliner) error {
 		pipe.Ping(ctx)
 		pipe.Ping(ctx)
 		return nil
@@ -70,12 +70,12 @@ func ExamplePipeline_instrumentation() {
 }
 
 func ExampleClient_Watch_instrumentation() {
-	rdb := redis.NewClient(&redis.Options{
+	rdb := dicedb.NewClient(&dicedb.Options{
 		Addr: ":6379",
 	})
 	rdb.AddHook(redisHook{})
 
-	rdb.Watch(ctx, func(tx *redis.Tx) error {
+	rdb.Watch(ctx, func(tx *dicedb.Tx) error {
 		tx.Ping(ctx)
 		tx.Ping(ctx)
 		return nil

@@ -1,6 +1,6 @@
 //go:build go1.7
 
-package redis
+package dicedb
 
 import (
 	"crypto/tls"

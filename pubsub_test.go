@@ -1,4 +1,4 @@
-package redis_test
+package dicedb_test
 
 import (
 	"io"
@@ -13,13 +13,13 @@ import (
 )
 
 var _ = Describe("PubSub", func() {
-	var client *redis.Client
+	var client *dicedb.Client
 
 	BeforeEach(func() {
 		opt := redisOptions()
 		opt.MinIdleConns = 0
 		opt.ConnMaxLifetime = 0
-		client = redis.NewClient(opt)
+		client = dicedb.NewClient(opt)
 		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 	})
 
@@ -41,7 +41,7 @@ var _ = Describe("PubSub", func() {
 		{
 			msgi, err := pubsub.ReceiveTimeout(ctx, time.Second)
 			Expect(err).NotTo(HaveOccurred())
-			subscr := msgi.(*redis.Subscription)
+			subscr := msgi.(*dicedb.Subscription)
 			Expect(subscr.Kind).To(Equal("psubscribe"))
 			Expect(subscr.Channel).To(Equal("mychannel*"))
 			Expect(subscr.Count).To(Equal(1))
@@ -62,7 +62,7 @@ var _ = Describe("PubSub", func() {
 		{
 			msgi, err := pubsub.ReceiveTimeout(ctx, time.Second)
 			Expect(err).NotTo(HaveOccurred())
-			subscr := msgi.(*redis.Message)
+			subscr := msgi.(*dicedb.Message)
 			Expect(subscr.Channel).To(Equal("mychannel1"))
 			Expect(subscr.Pattern).To(Equal("mychannel*"))
 			Expect(subscr.Payload).To(Equal("hello"))
@@ -71,7 +71,7 @@ var _ = Describe("PubSub", func() {
 		{
 			msgi, err := pubsub.ReceiveTimeout(ctx, time.Second)
 			Expect(err).NotTo(HaveOccurred())
-			subscr := msgi.(*redis.Subscription)
+			subscr := msgi.(*dicedb.Subscription)
 			Expect(subscr.Kind).To(Equal("punsubscribe"))
 			Expect(subscr.Channel).To(Equal("mychannel*"))
 			Expect(subscr.Count).To(Equal(0))
@@ -164,7 +164,7 @@ var _ = Describe("PubSub", func() {
 		{
 			msgi, err := pubsub.ReceiveTimeout(ctx, time.Second)
 			Expect(err).NotTo(HaveOccurred())
-			subscr := msgi.(*redis.Subscription)
+			subscr := msgi.(*dicedb.Subscription)
 			Expect(subscr.Kind).To(Equal("subscribe"))
 			Expect(subscr.Channel).To(Equal("mychannel"))
 			Expect(subscr.Count).To(Equal(1))
@@ -173,7 +173,7 @@ var _ = Describe("PubSub", func() {
 		{
 			msgi, err := pubsub.ReceiveTimeout(ctx, time.Second)
 			Expect(err).NotTo(HaveOccurred())
-			subscr := msgi.(*redis.Subscription)
+			subscr := msgi.(*dicedb.Subscription)
 			Expect(subscr.Kind).To(Equal("subscribe"))
 			Expect(subscr.Channel).To(Equal("mychannel2"))
 			Expect(subscr.Count).To(Equal(2))
@@ -198,7 +198,7 @@ var _ = Describe("PubSub", func() {
 		{
 			msgi, err := pubsub.ReceiveTimeout(ctx, time.Second)
 			Expect(err).NotTo(HaveOccurred())
-			msg := msgi.(*redis.Message)
+			msg := msgi.(*dicedb.Message)
 			Expect(msg.Channel).To(Equal("mychannel"))
 			Expect(msg.Payload).To(Equal("hello"))
 		}
@@ -206,7 +206,7 @@ var _ = Describe("PubSub", func() {
 		{
 			msgi, err := pubsub.ReceiveTimeout(ctx, time.Second)
 			Expect(err).NotTo(HaveOccurred())
-			msg := msgi.(*redis.Message)
+			msg := msgi.(*dicedb.Message)
 			Expect(msg.Channel).To(Equal("mychannel2"))
 			Expect(msg.Payload).To(Equal("hello2"))
 		}
@@ -214,7 +214,7 @@ var _ = Describe("PubSub", func() {
 		{
 			msgi, err := pubsub.ReceiveTimeout(ctx, time.Second)
 			Expect(err).NotTo(HaveOccurred())
-			subscr := msgi.(*redis.Subscription)
+			subscr := msgi.(*dicedb.Subscription)
 			Expect(subscr.Kind).To(Equal("unsubscribe"))
 			Expect(subscr.Channel).To(Equal("mychannel"))
 			Expect(subscr.Count).To(Equal(1))
@@ -223,7 +223,7 @@ var _ = Describe("PubSub", func() {
 		{
 			msgi, err := pubsub.ReceiveTimeout(ctx, time.Second)
 			Expect(err).NotTo(HaveOccurred())
-			subscr := msgi.(*redis.Subscription)
+			subscr := msgi.(*dicedb.Subscription)
 			Expect(subscr.Kind).To(Equal("unsubscribe"))
 			Expect(subscr.Channel).To(Equal("mychannel2"))
 			Expect(subscr.Count).To(Equal(0))
@@ -240,7 +240,7 @@ var _ = Describe("PubSub", func() {
 		{
 			msgi, err := pubsub.ReceiveTimeout(ctx, time.Second)
 			Expect(err).NotTo(HaveOccurred())
-			subscr := msgi.(*redis.Subscription)
+			subscr := msgi.(*dicedb.Subscription)
 			Expect(subscr.Kind).To(Equal("ssubscribe"))
 			Expect(subscr.Channel).To(Equal("mychannel"))
 			Expect(subscr.Count).To(Equal(1))
@@ -249,7 +249,7 @@ var _ = Describe("PubSub", func() {
 		{
 			msgi, err := pubsub.ReceiveTimeout(ctx, time.Second)
 			Expect(err).NotTo(HaveOccurred())
-			subscr := msgi.(*redis.Subscription)
+			subscr := msgi.(*dicedb.Subscription)
 			Expect(subscr.Kind).To(Equal("ssubscribe"))
 			Expect(subscr.Channel).To(Equal("mychannel2"))
 			Expect(subscr.Count).To(Equal(2))
@@ -274,7 +274,7 @@ var _ = Describe("PubSub", func() {
 		{
 			msgi, err := pubsub.ReceiveTimeout(ctx, time.Second)
 			Expect(err).NotTo(HaveOccurred())
-			msg := msgi.(*redis.Message)
+			msg := msgi.(*dicedb.Message)
 			Expect(msg.Channel).To(Equal("mychannel"))
 			Expect(msg.Payload).To(Equal("hello"))
 		}
@@ -282,7 +282,7 @@ var _ = Describe("PubSub", func() {
 		{
 			msgi, err := pubsub.ReceiveTimeout(ctx, time.Second)
 			Expect(err).NotTo(HaveOccurred())
-			msg := msgi.(*redis.Message)
+			msg := msgi.(*dicedb.Message)
 			Expect(msg.Channel).To(Equal("mychannel2"))
 			Expect(msg.Payload).To(Equal("hello2"))
 		}
@@ -290,7 +290,7 @@ var _ = Describe("PubSub", func() {
 		{
 			msgi, err := pubsub.ReceiveTimeout(ctx, time.Second)
 			Expect(err).NotTo(HaveOccurred())
-			subscr := msgi.(*redis.Subscription)
+			subscr := msgi.(*dicedb.Subscription)
 			Expect(subscr.Kind).To(Equal("sunsubscribe"))
 			Expect(subscr.Channel).To(Equal("mychannel"))
 			Expect(subscr.Count).To(Equal(1))
@@ -299,7 +299,7 @@ var _ = Describe("PubSub", func() {
 		{
 			msgi, err := pubsub.ReceiveTimeout(ctx, time.Second)
 			Expect(err).NotTo(HaveOccurred())
-			subscr := msgi.(*redis.Subscription)
+			subscr := msgi.(*dicedb.Subscription)
 			Expect(subscr.Kind).To(Equal("sunsubscribe"))
 			Expect(subscr.Channel).To(Equal("mychannel2"))
 			Expect(subscr.Count).To(Equal(0))
@@ -321,7 +321,7 @@ var _ = Describe("PubSub", func() {
 
 		msgi, err := pubsub.ReceiveTimeout(ctx, time.Second)
 		Expect(err).NotTo(HaveOccurred())
-		pong := msgi.(*redis.Pong)
+		pong := msgi.(*dicedb.Pong)
 		Expect(pong.Payload).To(Equal(""))
 	})
 
@@ -337,7 +337,7 @@ var _ = Describe("PubSub", func() {
 
 		msgi, err := pubsub.ReceiveTimeout(ctx, time.Second)
 		Expect(err).NotTo(HaveOccurred())
-		pong := msgi.(*redis.Pong)
+		pong := msgi.(*dicedb.Pong)
 		Expect(pong.Payload).To(Equal("hello"))
 	})
 
@@ -347,7 +347,7 @@ var _ = Describe("PubSub", func() {
 
 		subscr, err := pubsub.ReceiveTimeout(ctx, time.Second)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(subscr).To(Equal(&redis.Subscription{
+		Expect(subscr).To(Equal(&dicedb.Subscription{
 			Kind:    "subscribe",
 			Channel: "mychannel",
 			Count:   1,
@@ -386,7 +386,7 @@ var _ = Describe("PubSub", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	expectReceiveMessageOnError := func(pubsub *redis.PubSub) {
+	expectReceiveMessageOnError := func(pubsub *dicedb.PubSub) {
 		pubsub.SetNetConn(&badConn{
 			readErr:  io.EOF,
 			writeErr: io.EOF,
@@ -421,7 +421,7 @@ var _ = Describe("PubSub", func() {
 
 		subscr, err := pubsub.ReceiveTimeout(ctx, time.Second)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(subscr).To(Equal(&redis.Subscription{
+		Expect(subscr).To(Equal(&dicedb.Subscription{
 			Kind:    "subscribe",
 			Channel: "mychannel",
 			Count:   1,
@@ -436,7 +436,7 @@ var _ = Describe("PubSub", func() {
 
 		subscr, err := pubsub.ReceiveTimeout(ctx, time.Second)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(subscr).To(Equal(&redis.Subscription{
+		Expect(subscr).To(Equal(&dicedb.Subscription{
 			Kind:    "psubscribe",
 			Channel: "mychannel",
 			Count:   1,
@@ -514,7 +514,7 @@ var _ = Describe("PubSub", func() {
 		err := client.Publish(ctx, "mychannel", bigVal).Err()
 		Expect(err).NotTo(HaveOccurred())
 
-		var msg *redis.Message
+		var msg *dicedb.Message
 		Eventually(ch).Should(Receive(&msg))
 		Expect(msg.Channel).To(Equal("mychannel"))
 		Expect(msg.Payload).To(Equal(string(bigVal)))
@@ -554,15 +554,15 @@ var _ = Describe("PubSub", func() {
 		defer pubsub.Close()
 
 		ch := pubsub.Channel(
-			redis.WithChannelSize(10),
-			redis.WithChannelHealthCheckInterval(time.Second),
+			dicedb.WithChannelSize(10),
+			dicedb.WithChannelHealthCheckInterval(time.Second),
 		)
 
 		text := "test channel message"
 		err := client.Publish(ctx, "mychannel", text).Err()
 		Expect(err).NotTo(HaveOccurred())
 
-		var msg *redis.Message
+		var msg *dicedb.Message
 		Eventually(ch).Should(Receive(&msg))
 		Expect(msg.Channel).To(Equal("mychannel"))
 		Expect(msg.Payload).To(Equal(text))

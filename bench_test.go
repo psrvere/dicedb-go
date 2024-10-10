@@ -1,4 +1,4 @@
-package redis_test
+package dicedb_test
 
 import (
 	"bytes"
@@ -13,8 +13,8 @@ import (
 	"github.com/dicedb/go-dice"
 )
 
-func benchmarkRedisClient(ctx context.Context, poolSize int) *redis.Client {
-	client := redis.NewClient(&redis.Options{
+func benchmarkRedisClient(ctx context.Context, poolSize int) *dicedb.Client {
+	client := dicedb.NewClient(&dicedb.Options{
 		Addr:         ":6379",
 		DialTimeout:  time.Second,
 		ReadTimeout:  time.Second,
@@ -76,7 +76,7 @@ func BenchmarkRedisGetNil(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			if err := client.Get(ctx, "key").Err(); err != redis.Nil {
+			if err := client.Get(ctx, "key").Err(); err != dicedb.Nil {
 				b.Fatal(err)
 			}
 		}
@@ -202,7 +202,7 @@ func BenchmarkPipeline(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			_, err := client.Pipelined(ctx, func(pipe redis.Pipeliner) error {
+			_, err := client.Pipelined(ctx, func(pipe dicedb.Pipeliner) error {
 				pipe.Set(ctx, "key", "hello", 0)
 				pipe.Expire(ctx, "key", time.Second)
 				return nil
@@ -223,7 +223,7 @@ func BenchmarkZAdd(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			err := client.ZAdd(ctx, "key", redis.Z{
+			err := client.ZAdd(ctx, "key", dicedb.Z{
 				Score:  float64(1),
 				Member: "hello",
 			}).Err()
@@ -239,7 +239,7 @@ func BenchmarkXRead(b *testing.B) {
 	client := benchmarkRedisClient(ctx, 10)
 	defer client.Close()
 
-	args := redis.XAddArgs{
+	args := dicedb.XAddArgs{
 		Stream: "1",
 		ID:     "*",
 		Values: map[string]string{"uno": "dos"},
@@ -261,7 +261,7 @@ func BenchmarkXRead(b *testing.B) {
 		for pb.Next() {
 			client.XAdd(ctx, &args)
 
-			err := client.XRead(ctx, &redis.XReadArgs{
+			err := client.XRead(ctx, &dicedb.XReadArgs{
 				Streams: streams,
 				Count:   1,
 				Block:   time.Second,
@@ -280,7 +280,7 @@ func newClusterScenario() *clusterScenario {
 		ports:     []string{"8220", "8221", "8222", "8223", "8224", "8225"},
 		nodeIDs:   make([]string, 6),
 		processes: make(map[string]*redisProcess, 6),
-		clients:   make(map[string]*redis.Client, 6),
+		clients:   make(map[string]*dicedb.Client, 6),
 	}
 }
 
@@ -387,14 +387,14 @@ func BenchmarkExecRingSetAddrsCmd(b *testing.B) {
 		processes = nil
 	})
 
-	ring := redis.NewRing(&redis.RingOptions{
+	ring := dicedb.NewRing(&dicedb.RingOptions{
 		Addrs: map[string]string{
 			"ringShardOne": ":" + ringShard1Port,
 		},
-		NewClient: func(opt *redis.Options) *redis.Client {
+		NewClient: func(opt *dicedb.Options) *dicedb.Client {
 			// Simulate slow shard creation
 			time.Sleep(100 * time.Millisecond)
-			return redis.NewClient(opt)
+			return dicedb.NewClient(opt)
 		},
 	})
 	defer ring.Close()
@@ -431,7 +431,7 @@ func BenchmarkExecRingSetAddrsCmd(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		if _, err := ring.Ping(context.Background()).Result(); err != nil {
-			if err == redis.ErrClosed {
+			if err == dicedb.ErrClosed {
 				// The shard client could be closed while ping command is in progress
 				continue
 			} else {
