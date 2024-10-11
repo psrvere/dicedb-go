@@ -799,6 +799,15 @@ func (c *Client) QWatch(ctx context.Context) *QWatch {
 	return c.qwatch()
 }
 
+func (c *Client) ZRangeWatcher(ctx context.Context) (*ZRangeWatch, error) {
+	watch := c.WatchCommand(ctx)
+	if watch == nil {
+		return nil, fmt.Errorf("failed to create watch command")
+	}
+
+	return &ZRangeWatch{watchCommand: watch}, nil
+}
+
 func (c *Client) WatchCommand(ctx context.Context) *WatchCommand {
 	return c.watchCommand()
 }

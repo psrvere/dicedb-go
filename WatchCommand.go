@@ -14,13 +14,13 @@ import (
 
 // WatchNotification represents a message received via WatchCommand.
 type WatchNotification struct {
-	Command string
-	Name    string
-	Data    interface{}
+	Command     string
+	Fingerprint string
+	Data        interface{}
 }
 
 func (m *WatchNotification) String() string {
-	return fmt.Sprintf("WatchNotification(Command=%v, Name=%v, Data=%v)", m.Command, m.Name, m.Data)
+	return fmt.Sprintf("WatchNotification(Command=%v, Fingerprint=%v, Data=%v)", m.Command, m.Fingerprint, m.Data)
 }
 
 // WatchCommand implements the WATCHCOMMAND, which allows clients to watch commands.
@@ -253,7 +253,7 @@ func (w *WatchCommand) processWatchCommandMessage(payload []interface{}) (*Watch
 
 	data := payload[2]
 
-	return &WatchNotification{Command: command, Name: name, Data: data}, nil
+	return &WatchNotification{Command: command, Fingerprint: name, Data: data}, nil
 }
 
 // ReceiveTimeout acts like Receive but returns an error if a message
