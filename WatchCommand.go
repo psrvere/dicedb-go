@@ -12,19 +12,19 @@ import (
 	"time"
 )
 
-// WMessage represents a message received via WatchCommand.
-type WMessage struct {
+// WatchNotification represents a message received via WatchCommand.
+type WatchNotification struct {
 	Command string
 	Name    string
 	Data    interface{}
 }
 
-func (m *WMessage) String() string {
-	return fmt.Sprintf("WMessage(Command=%v, Name=%v, Data=%v)", m.Command, m.Name, m.Data)
+func (m *WatchNotification) String() string {
+	return fmt.Sprintf("WatchNotification(Command=%v, Name=%v, Data=%v)", m.Command, m.Name, m.Data)
 }
 
 // WatchCommand implements the WATCHCOMMAND, which allows clients to watch commands.
-// WMessage receiving is NOT safe for concurrent use by multiple goroutines.
+// WatchNotification receiving is NOT safe for concurrent use by multiple goroutines.
 //
 // WatchCommand automatically reconnects to the Redis server and re-subscribes
 // to the commands in case of network errors.
@@ -169,13 +169,13 @@ func (w *WatchCommand) Close() error {
 
 // Watch subscribes the client to the specified command.
 // It returns an error if subscription fails.
-func (w *WatchCommand) Watch(ctx context.Context, cmdName string, args ...interface{}) error {
+func (w *WatchCommand) Watch(ctx context.Context, cmdName string, args ...interface{}) (*WatchNotification, error) {
 	w.mu.Lock()
-	defer w.mu.Unlock()
 
-	err := w.watchCommand(ctx, "WATCHCOMMAND", cmdName, args...)
+	// Subscribe to the command
+	err := w.watchCommand(ctx, cmdName, args...)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if w.commands == nil {
@@ -183,12 +183,20 @@ func (w *WatchCommand) Watch(ctx context.Context, cmdName string, args ...interf
 	}
 	w.commands[cmdName] = args
 
-	return nil
+	w.mu.Unlock()
+
+	// Get the first message synchronously to return it to the user.
+	firstMsg, err := w.ReceiveWMessage(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return firstMsg, nil
 }
 
-// watchCommand sends the WATCHCOMMAND command to the server.
+// watchCommand sends the WATCH command to the server.
 // It must be called with the mutex locked.
-func (w *WatchCommand) watchCommand(ctx context.Context, redisCmd string, cmdName string, args ...interface{}) error {
+func (w *WatchCommand) watchCommand(ctx context.Context, cmdName string, args ...interface{}) error {
 	cn, err := w.conn(ctx, cmdName, args...)
 	if err != nil {
 		return err
@@ -226,7 +234,7 @@ func (w *WatchCommand) newWMessage(reply interface{}) (interface{}, error) {
 }
 
 // processWatchCommandMessage parses a WATCHCOMMAND message from the server.
-func (w *WatchCommand) processWatchCommandMessage(payload []interface{}) (*WMessage, error) {
+func (w *WatchCommand) processWatchCommandMessage(payload []interface{}) (*WatchNotification, error) {
 	if len(payload) < 3 {
 		return nil, fmt.Errorf("redis: invalid watchcommand message format")
 	}
@@ -245,7 +253,7 @@ func (w *WatchCommand) processWatchCommandMessage(payload []interface{}) (*WMess
 
 	data := payload[2]
 
-	return &WMessage{Command: command, Name: name, Data: data}, nil
+	return &WatchNotification{Command: command, Name: name, Data: data}, nil
 }
 
 // ReceiveTimeout acts like Receive but returns an error if a message
@@ -274,15 +282,15 @@ func (w *WatchCommand) ReceiveTimeout(ctx context.Context, timeout time.Duration
 	return w.newWMessage(w.cmd.Val())
 }
 
-// Receive returns a message as a WMessage, Pong, or error.
+// Receive returns a message as a WatchNotification, Pong, or error.
 // This is a low-level API and in most cases Channel should be used instead.
 func (w *WatchCommand) Receive(ctx context.Context) (interface{}, error) {
 	return w.ReceiveTimeout(ctx, 0)
 }
 
-// ReceiveWMessage returns a WMessage or error, ignoring Pong messages.
+// ReceiveWMessage returns a WatchNotification or error, ignoring Pong messages.
 // This is a low-level API and in most cases Channel should be used instead.
-func (w *WatchCommand) ReceiveWMessage(ctx context.Context) (*WMessage, error) {
+func (w *WatchCommand) ReceiveWMessage(ctx context.Context) (*WatchNotification, error) {
 	for {
 		msg, err := w.Receive(ctx)
 		if err != nil {
@@ -292,7 +300,7 @@ func (w *WatchCommand) ReceiveWMessage(ctx context.Context) (*WMessage, error) {
 		switch msg := msg.(type) {
 		case *Pong:
 			// Ignore.
-		case *WMessage:
+		case *WatchNotification:
 			return msg, nil
 		default:
 			return nil, fmt.Errorf("redis: unknown message type: %T", msg)
@@ -314,7 +322,7 @@ func (w *WatchCommand) getContext() context.Context {
 //
 // go-redis periodically sends ping messages to test connection health
 // and re-subscribes if ping cannot be received for 1 minute.
-func (w *WatchCommand) Channel(opts ...WChannelOption) <-chan *WMessage {
+func (w *WatchCommand) Channel(opts ...WChannelOption) <-chan *WatchNotification {
 	w.chOnce.Do(func() {
 		w.msgCh = newWatchCommandChannel(w, opts...)
 		w.msgCh.initMsgChan()
@@ -330,7 +338,7 @@ func (w *WatchCommand) Channel(opts ...WChannelOption) <-chan *WMessage {
 type wChannel struct {
 	watchCmd *WatchCommand
 
-	msgCh chan *WMessage
+	msgCh chan *WatchNotification
 	allCh chan interface{}
 	ping  chan struct{}
 
@@ -439,7 +447,7 @@ func (c *wChannel) initHealthCheck() {
 // initMsgChan initializes the message receiving routine.
 func (c *wChannel) initMsgChan() {
 	ctx := context.TODO()
-	c.msgCh = make(chan *WMessage, c.chanSize)
+	c.msgCh = make(chan *WatchNotification, c.chanSize)
 
 	go func() {
 		timer := time.NewTimer(time.Minute)
@@ -471,7 +479,7 @@ func (c *wChannel) initMsgChan() {
 			switch msg := msg.(type) {
 			case *Pong:
 				// Ignore.
-			case *WMessage:
+			case *WatchNotification:
 				timer.Reset(c.chanSendTimeout)
 				select {
 				case c.msgCh <- msg:
