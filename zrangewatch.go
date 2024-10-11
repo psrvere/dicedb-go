@@ -62,8 +62,8 @@ func (z *ZRangeWatch) Channel() <-chan *ZRangeWatchResult {
 }
 
 // parseScores parses the Data from ZRANGE into a slice of Score.
-func (z *ZRangeWatch) parseScores(watchNotification *WatchResult) (*ZRangeWatchResult, error) {
-	dataList, ok := watchNotification.Data.([]interface{})
+func (z *ZRangeWatch) parseScores(result *WatchResult) (*ZRangeWatchResult, error) {
+	dataList, ok := result.Data.([]interface{})
 	if !ok {
 		return nil, fmt.Errorf("unexpected data type in ZRANGE message")
 	}
@@ -85,8 +85,8 @@ func (z *ZRangeWatch) parseScores(watchNotification *WatchResult) (*ZRangeWatchR
 		})
 	}
 	return &ZRangeWatchResult{
-		Command:     watchNotification.Command,
-		Fingerprint: watchNotification.Fingerprint,
+		Command:     result.Command,
+		Fingerprint: result.Fingerprint,
 		Data:        scores,
 	}, nil
 }

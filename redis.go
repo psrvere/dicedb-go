@@ -749,7 +749,7 @@ func (c *Client) qwatch() *QWatch {
 	return qwatch
 }
 
-func (c *Client) watchCommand() *WatchConn {
+func (c *Client) watchConn() *WatchConn {
 	watch := &WatchConn{
 		opt: c.opt,
 		newConn: func(ctx context.Context, query string, args ...interface{}) (*pool.Conn, error) {
@@ -809,7 +809,7 @@ func (c *Client) ZRangeWatchConn(ctx context.Context) (*ZRangeWatch, error) {
 }
 
 func (c *Client) WatchConn(ctx context.Context) *WatchConn {
-	return c.watchCommand()
+	return c.watchConn()
 }
 
 // PSubscribe subscribes the client to the given patterns.

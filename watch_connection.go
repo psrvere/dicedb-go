@@ -7,6 +7,7 @@ import (
 	"github.com/dicedb/dicedb-go/internal"
 	"github.com/dicedb/dicedb-go/internal/pool"
 	"github.com/dicedb/dicedb-go/internal/proto"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -194,6 +195,14 @@ func (w *WatchConn) Watch(ctx context.Context, cmdName string, args ...interface
 	return firstMsg, nil
 }
 
+func (w *WatchConn) GetWatch(ctx context.Context, args ...interface{}) (*WatchResult, error) {
+	return w.Watch(ctx, "GET", args...)
+}
+
+func (w *WatchConn) ZRangeWatch(ctx context.Context, args ...interface{}) (*WatchResult, error) {
+	return w.Watch(ctx, "ZRANGE", args...)
+}
+
 // watchCommand sends the WATCH command to the server.
 // It must be called with the mutex locked.
 func (w *WatchConn) watchCommand(ctx context.Context, cmdName string, args ...interface{}) error {
@@ -225,16 +234,15 @@ func (w *WatchConn) newWMessage(reply interface{}) (interface{}, error) {
 		if kind == "pong" {
 			return parsePongMessage(reply)
 		} else {
-			// GET.WATCH (initially), "GET" (later replies)
-			return w.processWatchCommandMessage(reply)
+			return w.processWatchResult(reply)
 		}
 	default:
 		return nil, fmt.Errorf("redis: unsupported watchcommand message type: %T", reply)
 	}
 }
 
-// processWatchCommandMessage parses a WATCHCOMMAND message from the server.
-func (w *WatchConn) processWatchCommandMessage(payload []interface{}) (*WatchResult, error) {
+// processWatchResult parses a WATCHCOMMAND message from the server.
+func (w *WatchConn) processWatchResult(payload []interface{}) (*WatchResult, error) {
 	if len(payload) < 3 {
 		return nil, fmt.Errorf("redis: invalid watchcommand message format")
 	}
@@ -246,14 +254,59 @@ func (w *WatchConn) processWatchCommandMessage(payload []interface{}) (*WatchRes
 	}
 
 	// Ensure name is a string
-	name, ok := payload[1].(string)
+	fingerprint, ok := payload[1].(string)
 	if !ok {
-		return nil, fmt.Errorf("redis: invalid name in watchcommand message, expected string, got %T", payload[1])
+		return nil, fmt.Errorf("redis: invalid fingerprint in watchcommand message, expected string, got %T", payload[1])
 	}
 
 	data := payload[2]
+	var typedData any
 
-	return &WatchResult{Command: command, Fingerprint: name, Data: data}, nil
+	switch command {
+	case "GET.WATCH", "GET":
+		if data == nil {
+			return &WatchResult{Command: command, Fingerprint: fingerprint, Data: nil}, nil
+		}
+		typedData, ok = data.(string)
+		if !ok {
+			return nil, fmt.Errorf("redis: invalid data in GET.WATCH message, expected string, got %T", payload[2])
+		}
+	case "ZRANGE.WATCH", "ZRANGE":
+		typedData, ok = parseZRangeResult(data)
+		if !ok {
+			return nil, fmt.Errorf("redis: invalid data in ZRANGE.WATCH message, expected []Z, got %T", payload[2])
+		}
+	default:
+		typedData = data
+	}
+
+	return &WatchResult{Command: command, Fingerprint: fingerprint, Data: typedData}, nil
+}
+
+// parseScores parses the Data from ZRANGE into a slice of Score.
+func parseZRangeResult(data interface{}) ([]Z, bool) {
+	dataList, ok := data.([]interface{})
+	if !ok {
+		return nil, false
+	}
+
+	var scores []Z
+	for i := 0; i < len(dataList); i += 2 {
+		member, ok1 := dataList[i].(string)
+		scoreStr, ok2 := dataList[i+1].(string)
+		if !ok1 || !ok2 {
+			return nil, false
+		}
+		scoreFloat, err := strconv.ParseFloat(scoreStr, 64)
+		if err != nil {
+			return nil, false
+		}
+		scores = append(scores, Z{
+			Member: member,
+			Score:  scoreFloat,
+		})
+	}
+	return scores, true
 }
 
 // ReceiveTimeout acts like Receive but returns an error if a message
