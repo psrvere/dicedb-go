@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dicedb/go-dice"
+	"github.com/dicedb/dicedb-go"
 )
 
 func CmdString(cmd redis.Cmder) string {

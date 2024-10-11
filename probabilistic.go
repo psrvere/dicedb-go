@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/dicedb/go-dice/internal/proto"
+	"github.com/dicedb/dicedb-go/internal/proto"
 )
 
 type ProbabilisticCmdable interface {

@@ -5,7 +5,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 
-	"github.com/dicedb/go-dice"
+	"github.com/dicedb/dicedb-go"
 )
 
 type Model struct {

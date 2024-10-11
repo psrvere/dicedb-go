@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/dicedb/go-dice/internal"
-	"github.com/dicedb/go-dice/internal/proto"
+	"github.com/dicedb/dicedb-go/internal"
+	"github.com/dicedb/dicedb-go/internal/proto"
 )
 
 type SearchCmdable interface {

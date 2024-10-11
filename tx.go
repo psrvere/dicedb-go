@@ -3,8 +3,8 @@ package dicedb
 import (
 	"context"
 
-	"github.com/dicedb/go-dice/internal/pool"
-	"github.com/dicedb/go-dice/internal/proto"
+	"github.com/dicedb/dicedb-go/internal/pool"
+	"github.com/dicedb/dicedb-go/internal/proto"
 )
 
 // TxFailedErr transaction redis failed.

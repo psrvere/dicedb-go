@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/dicedb/go-dice"
+	"github.com/dicedb/dicedb-go"
 
 	. "github.com/bsm/ginkgo/v2"
 	. "github.com/bsm/gomega"

@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/dicedb/go-dice/internal/proto"
+	"github.com/dicedb/dicedb-go/internal/proto"
 )
 
 var noDeadline = time.Time{}

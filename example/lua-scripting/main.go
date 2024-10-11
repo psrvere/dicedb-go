@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/dicedb/go-dice"
+	"github.com/dicedb/dicedb-go"
 )
 
 func main() {

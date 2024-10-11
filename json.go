@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/dicedb/go-dice/internal/proto"
-	"github.com/dicedb/go-dice/internal/util"
+	"github.com/dicedb/dicedb-go/internal/proto"
+	"github.com/dicedb/dicedb-go/internal/util"
 )
 
 // -------------------------------------------

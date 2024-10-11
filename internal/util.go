@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dicedb/go-dice/internal/util"
+	"github.com/dicedb/dicedb-go/internal/util"
 )
 
 func Sleep(ctx context.Context, dur time.Duration) error {

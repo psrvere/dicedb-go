@@ -6,7 +6,7 @@ import (
 
 	"go.opencensus.io/trace"
 
-	"github.com/dicedb/go-dice"
+	"github.com/dicedb/dicedb-go"
 	"github.com/redis/go-redis/extra/rediscmd/v9"
 )
 

@@ -14,8 +14,8 @@ import (
 	. "github.com/bsm/ginkgo/v2"
 	. "github.com/bsm/gomega"
 
-	"github.com/dicedb/go-dice"
-	"github.com/dicedb/go-dice/internal/hashtag"
+	"github.com/dicedb/dicedb-go"
+	"github.com/dicedb/dicedb-go/internal/hashtag"
 )
 
 type clusterScenario struct {

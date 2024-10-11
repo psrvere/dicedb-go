@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dicedb/go-dice/internal/proto"
+	"github.com/dicedb/dicedb-go/internal/proto"
 )
 
 var ctx = context.TODO()

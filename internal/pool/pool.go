@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/dicedb/go-dice/internal"
+	"github.com/dicedb/dicedb-go/internal"
 )
 
 var (

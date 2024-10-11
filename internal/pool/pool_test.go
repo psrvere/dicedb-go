@@ -10,7 +10,7 @@ import (
 	. "github.com/bsm/ginkgo/v2"
 	. "github.com/bsm/gomega"
 
-	"github.com/dicedb/go-dice/internal/pool"
+	"github.com/dicedb/dicedb-go/internal/pool"
 )
 
 var _ = Describe("ConnPool", func() {

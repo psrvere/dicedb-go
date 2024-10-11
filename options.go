@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dicedb/go-dice/internal/pool"
+	"github.com/dicedb/dicedb-go/internal/pool"
 )
 
 // Limiter is the interface of a rate limiter or a circuit breaker.

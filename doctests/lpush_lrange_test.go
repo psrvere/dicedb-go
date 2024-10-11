@@ -6,7 +6,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/dicedb/go-dice"
+	"github.com/dicedb/dicedb-go"
 )
 
 func ExampleClient_LPush_and_lrange() {

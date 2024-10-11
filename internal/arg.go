@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/dicedb/go-dice/internal/util"
+	"github.com/dicedb/dicedb-go/internal/util"
 )
 
 func AppendArg(b []byte, v interface{}) []byte {

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/dicedb/go-dice/internal/util"
+	"github.com/dicedb/dicedb-go/internal/util"
 )
 
 // structMap contains the map of struct fields for target structs

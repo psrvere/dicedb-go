@@ -19,13 +19,13 @@ As a fork of [go-redis](https://github.com/redis/go-redis) client, go-dice maint
 
 To install `go-dice` in your Go project, you can use go get to fetch the library:
 ```shell
-go get github.com/DiceDB/go-dice
+go get github.com/dicedb/dicedb-go
 ```
 
 After installing, you can import the library into your project:
 ```go
 import (
-	"github.com/dicedb/go-dice"
+	"github.com/dicedb/dicedb-go"
 )
 ```
 
@@ -39,7 +39,7 @@ import (
    "fmt"
    "log"
 
-   dice "github.com/dicedb/go-dice"
+   dice "github.com/dicedb/dicedb-go"
 )
 
 func main() {
@@ -88,7 +88,7 @@ To run `go-dice` for local development or running from source, you will need:
     3. WSL under Windows
 
 ```
-$ git clone https://github.com/DiceDB/go-dice.git
+$ git clone https://github.com/dicedb/dicedb-go.git
 $ cd go-dice
 ```
 

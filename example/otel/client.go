@@ -11,7 +11,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 
-	"github.com/dicedb/go-dice"
+	"github.com/dicedb/dicedb-go"
 	"github.com/redis/go-redis/extra/redisotel/v9"
 )
 

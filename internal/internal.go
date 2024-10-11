@@ -3,7 +3,7 @@ package internal
 import (
 	"time"
 
-	"github.com/dicedb/go-dice/internal/rand"
+	"github.com/dicedb/dicedb-go/internal/rand"
 )
 
 func RetryBackoff(retry int, minBackoff, maxBackoff time.Duration) time.Duration {

@@ -3,7 +3,7 @@ package hashtag
 import (
 	"strings"
 
-	"github.com/dicedb/go-dice/internal/rand"
+	"github.com/dicedb/dicedb-go/internal/rand"
 )
 
 const slotNumber = 16384

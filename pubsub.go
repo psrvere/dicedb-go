@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dicedb/go-dice/internal"
-	"github.com/dicedb/go-dice/internal/pool"
-	"github.com/dicedb/go-dice/internal/proto"
+	"github.com/dicedb/dicedb-go/internal"
+	"github.com/dicedb/dicedb-go/internal/pool"
+	"github.com/dicedb/dicedb-go/internal/proto"
 )
 
 // PubSub implements Pub/Sub commands as described in

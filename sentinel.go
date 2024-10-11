@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dicedb/go-dice/internal"
-	"github.com/dicedb/go-dice/internal/pool"
-	"github.com/dicedb/go-dice/internal/rand"
+	"github.com/dicedb/dicedb-go/internal"
+	"github.com/dicedb/dicedb-go/internal/pool"
+	"github.com/dicedb/dicedb-go/internal/rand"
 )
 
 //------------------------------------------------------------------------------

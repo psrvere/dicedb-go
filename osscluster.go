@@ -14,11 +14,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/dicedb/go-dice/internal"
-	"github.com/dicedb/go-dice/internal/hashtag"
-	"github.com/dicedb/go-dice/internal/pool"
-	"github.com/dicedb/go-dice/internal/proto"
-	"github.com/dicedb/go-dice/internal/rand"
+	"github.com/dicedb/dicedb-go/internal"
+	"github.com/dicedb/dicedb-go/internal/hashtag"
+	"github.com/dicedb/dicedb-go/internal/pool"
+	"github.com/dicedb/dicedb-go/internal/proto"
+	"github.com/dicedb/dicedb-go/internal/rand"
 )
 
 var errClusterNoNodes = fmt.Errorf("redis: cluster has no nodes")

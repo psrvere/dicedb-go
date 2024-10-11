@@ -5,7 +5,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/dicedb/go-dice/internal/proto"
+	"github.com/dicedb/dicedb-go/internal/proto"
 )
 
 func BenchmarkReader_ParseReply_Status(b *testing.B) {

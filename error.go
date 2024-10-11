@@ -7,9 +7,9 @@ import (
 	"net"
 	"strings"
 
-	"github.com/dicedb/go-dice/internal"
-	"github.com/dicedb/go-dice/internal/pool"
-	"github.com/dicedb/go-dice/internal/proto"
+	"github.com/dicedb/dicedb-go/internal"
+	"github.com/dicedb/dicedb-go/internal/pool"
+	"github.com/dicedb/dicedb-go/internal/proto"
 )
 
 // ErrClosed performs any operation on the closed client will return this error.

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dicedb/go-dice/internal/pool"
+	"github.com/dicedb/dicedb-go/internal/pool"
 )
 
 type poolGetPutBenchmark struct {

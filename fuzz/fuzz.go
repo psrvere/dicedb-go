@@ -7,7 +7,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/dicedb/go-dice"
+	"github.com/dicedb/dicedb-go"
 )
 
 var (

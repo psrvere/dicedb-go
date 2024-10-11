@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dicedb/go-dice/internal"
+	"github.com/dicedb/dicedb-go/internal"
 )
 
 // KeepTTL is a Redis KEEPTTL option to keep existing TTL, it requires your redis-server version >= 6.0,

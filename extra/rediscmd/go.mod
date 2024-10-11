@@ -2,12 +2,12 @@ module github.com/redis/go-redis/extra/rediscmd/v9
 
 go 1.19
 
-replace github.com/dicedb/go-dice => ../..
+replace github.com/dicedb/dicedb-go => ../..
 
 require (
 	github.com/bsm/ginkgo/v2 v2.12.0
 	github.com/bsm/gomega v1.27.10
-	github.com/dicedb/go-dice v9.5.3
+	github.com/dicedb/dicedb-go v9.5.3
 )
 
 require (

@@ -3,7 +3,7 @@ package redisprometheus
 import (
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/dicedb/go-dice"
+	"github.com/dicedb/dicedb-go"
 )
 
 // StatGetter provides a method to get pool statistics.

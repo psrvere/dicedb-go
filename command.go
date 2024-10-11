@@ -11,10 +11,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dicedb/go-dice/internal"
-	"github.com/dicedb/go-dice/internal/hscan"
-	"github.com/dicedb/go-dice/internal/proto"
-	"github.com/dicedb/go-dice/internal/util"
+	"github.com/dicedb/dicedb-go/internal"
+	"github.com/dicedb/dicedb-go/internal/hscan"
+	"github.com/dicedb/dicedb-go/internal/proto"
+	"github.com/dicedb/dicedb-go/internal/util"
 )
 
 type Cmder interface {

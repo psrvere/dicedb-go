@@ -13,7 +13,7 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 	"go.opentelemetry.io/otel/trace"
 
-	"github.com/dicedb/go-dice"
+	"github.com/dicedb/dicedb-go"
 	"github.com/redis/go-redis/extra/rediscmd/v9"
 )
 

@@ -2,11 +2,11 @@ module github.com/redis/go-redis/example/scan-struct
 
 go 1.18
 
-replace github.com/dicedb/go-dice => ../..
+replace github.com/dicedb/dicedb-go => ../..
 
 require (
 	github.com/davecgh/go-spew v1.1.1
-	github.com/dicedb/go-dice v9.5.3
+	github.com/dicedb/dicedb-go v9.5.3
 )
 
 require (

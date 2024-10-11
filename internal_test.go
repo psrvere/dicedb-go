@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dicedb/go-dice/internal/pool"
-	"github.com/dicedb/go-dice/internal/proto"
+	"github.com/dicedb/dicedb-go/internal/pool"
+	"github.com/dicedb/dicedb-go/internal/proto"
 
 	. "github.com/bsm/ginkgo/v2"
 	. "github.com/bsm/gomega"

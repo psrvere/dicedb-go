@@ -2,9 +2,9 @@ module github.com/redis/go-redis/example/lua-scripting
 
 go 1.18
 
-replace github.com/dicedb/go-dice => ../..
+replace github.com/dicedb/dicedb-go => ../..
 
-require github.com/dicedb/go-dice v9.5.3
+require github.com/dicedb/dicedb-go v9.5.3
 
 require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect

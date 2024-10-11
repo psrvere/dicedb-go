@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dicedb/go-dice"
+	"github.com/dicedb/dicedb-go"
 )
 
 func benchmarkRedisClient(ctx context.Context, poolSize int) *dicedb.Client {

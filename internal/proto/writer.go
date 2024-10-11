@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/dicedb/go-dice/internal/util"
+	"github.com/dicedb/dicedb-go/internal/util"
 )
 
 type writer interface {

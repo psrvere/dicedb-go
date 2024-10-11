@@ -2,13 +2,13 @@ module github.com/redis/go-redis/extra/rediscensus/v9
 
 go 1.19
 
-replace github.com/dicedb/go-dice => ../..
+replace github.com/dicedb/dicedb-go => ../..
 
 replace github.com/redis/go-redis/extra/rediscmd/v9 => ../rediscmd
 
 require (
 	github.com/redis/go-redis/extra/rediscmd/v9 v9.5.3
-	github.com/dicedb/go-dice v9.5.3
+	github.com/dicedb/dicedb-go v9.5.3
 	go.opencensus.io v0.24.0
 )
 

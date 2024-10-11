@@ -6,9 +6,9 @@ import (
 	"net"
 	"strings"
 
-	"github.com/dicedb/go-dice/internal"
-	"github.com/dicedb/go-dice/internal/hashtag"
-	"github.com/dicedb/go-dice/internal/pool"
+	"github.com/dicedb/dicedb-go/internal"
+	"github.com/dicedb/dicedb-go/internal/hashtag"
+	"github.com/dicedb/dicedb-go/internal/pool"
 )
 
 func (c *baseClient) Pool() pool.Pooler {
