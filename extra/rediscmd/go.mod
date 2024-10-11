@@ -7,7 +7,7 @@ replace github.com/dicedb/dicedb-go => ../..
 require (
 	github.com/bsm/ginkgo/v2 v2.12.0
 	github.com/bsm/gomega v1.27.10
-	github.com/dicedb/dicedb-go v9.5.3
+	github.com/dicedb/dicedb-go v0.0.0-00010101000000-000000000000
 )
 
 require (
