@@ -7,8 +7,8 @@ replace github.com/dicedb/dicedb-go => ../..
 replace github.com/redis/go-redis/extra/rediscmd/v9 => ../rediscmd
 
 require (
+	github.com/dicedb/dicedb-go v0.0.0-00010101000000-000000000000
 	github.com/redis/go-redis/extra/rediscmd/v9 v9.5.3
-	github.com/dicedb/dicedb-go v9.5.3
 	go.opentelemetry.io/otel v1.22.0
 	go.opentelemetry.io/otel/metric v1.22.0
 	go.opentelemetry.io/otel/sdk v1.22.0

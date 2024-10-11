@@ -12,23 +12,23 @@ import (
 	"time"
 )
 
-// WatchNotification represents a message received via WatchCommand.
-type WatchNotification struct {
+// WatchResult represents a message received via WatchConn.
+type WatchResult struct {
 	Command     string
 	Fingerprint string
 	Data        interface{}
 }
 
-func (m *WatchNotification) String() string {
-	return fmt.Sprintf("WatchNotification(Command=%v, Fingerprint=%v, Data=%v)", m.Command, m.Fingerprint, m.Data)
+func (m *WatchResult) String() string {
+	return fmt.Sprintf("WatchResult(Command=%v, Fingerprint=%v, Data=%v)", m.Command, m.Fingerprint, m.Data)
 }
 
-// WatchCommand implements the WATCHCOMMAND, which allows clients to watch commands.
-// WatchNotification receiving is NOT safe for concurrent use by multiple goroutines.
+// WatchConn implements the WATCHCOMMAND, which allows clients to watch commands.
+// WatchResult receiving is NOT safe for concurrent use by multiple goroutines.
 //
-// WatchCommand automatically reconnects to the Redis server and re-subscribes
+// WatchConn automatically reconnects to the Redis server and re-subscribes
 // to the commands in case of network errors.
-type WatchCommand struct {
+type WatchConn struct {
 	opt *Options
 
 	newConn   func(ctx context.Context, cmdName string, args ...interface{}) (*pool.Conn, error)
@@ -46,26 +46,26 @@ type WatchCommand struct {
 	msgCh  *wChannel
 }
 
-func (w *WatchCommand) init() {
+func (w *WatchConn) init() {
 	w.exit = make(chan struct{})
 }
 
-func (w *WatchCommand) String() string {
+func (w *WatchConn) String() string {
 	var sb strings.Builder
 	for cmdName, args := range w.commands {
 		sb.WriteString(fmt.Sprintf("%s(%v); ", cmdName, args))
 	}
-	return fmt.Sprintf("WatchCommand(%s)", sb.String())
+	return fmt.Sprintf("WatchConn(%s)", sb.String())
 }
 
-func (w *WatchCommand) connWithLock(ctx context.Context, cmdName string, args ...interface{}) (*pool.Conn, error) {
+func (w *WatchConn) connWithLock(ctx context.Context, cmdName string, args ...interface{}) (*pool.Conn, error) {
 	w.mu.Lock()
 	cn, err := w.conn(ctx, cmdName, args...)
 	w.mu.Unlock()
 	return cn, err
 }
 
-func (w *WatchCommand) conn(ctx context.Context, cmdName string, args ...interface{}) (*pool.Conn, error) {
+func (w *WatchConn) conn(ctx context.Context, cmdName string, args ...interface{}) (*pool.Conn, error) {
 	if w.closed {
 		return nil, pool.ErrClosed
 	}
@@ -88,14 +88,14 @@ func (w *WatchCommand) conn(ctx context.Context, cmdName string, args ...interfa
 }
 
 // writeCmd writes a command to the connection.
-func (w *WatchCommand) writeCmd(ctx context.Context, cn *pool.Conn, cmd Cmder) error {
+func (w *WatchConn) writeCmd(ctx context.Context, cn *pool.Conn, cmd Cmder) error {
 	return cn.WithWriter(ctx, w.opt.WriteTimeout, func(wr *proto.Writer) error {
 		return writeCmd(wr, cmd)
 	})
 }
 
 // resubscribe re-subscribes to all commands on a new connection.
-func (w *WatchCommand) resubscribe(ctx context.Context, cn *pool.Conn) error {
+func (w *WatchConn) resubscribe(ctx context.Context, cn *pool.Conn) error {
 	var firstErr error
 
 	for cmdName, args := range w.commands {
@@ -109,7 +109,7 @@ func (w *WatchCommand) resubscribe(ctx context.Context, cn *pool.Conn) error {
 }
 
 // _watchCommand sends a WATCHCOMMAND command to the Redis server.
-func (w *WatchCommand) _watchCommand(ctx context.Context, cn *pool.Conn, cmdName string, args ...interface{}) error {
+func (w *WatchConn) _watchCommand(ctx context.Context, cn *pool.Conn, cmdName string, args ...interface{}) error {
 	cmdArgs := make([]interface{}, 0, 2+len(args))
 	cmdArgs = append(cmdArgs, cmdName)
 	cmdArgs = append(cmdArgs, args...)
@@ -117,13 +117,13 @@ func (w *WatchCommand) _watchCommand(ctx context.Context, cn *pool.Conn, cmdName
 	return w.writeCmd(ctx, cn, cmd)
 }
 
-func (w *WatchCommand) releaseConnWithLock(ctx context.Context, cn *pool.Conn, err error, allowTimeout bool) {
+func (w *WatchConn) releaseConnWithLock(ctx context.Context, cn *pool.Conn, err error, allowTimeout bool) {
 	w.mu.Lock()
 	w.releaseConn(ctx, cn, err, allowTimeout)
 	w.mu.Unlock()
 }
 
-func (w *WatchCommand) releaseConn(ctx context.Context, cn *pool.Conn, err error, allowTimeout bool) {
+func (w *WatchConn) releaseConn(ctx context.Context, cn *pool.Conn, err error, allowTimeout bool) {
 	if w.cn != cn {
 		return
 	}
@@ -134,27 +134,27 @@ func (w *WatchCommand) releaseConn(ctx context.Context, cn *pool.Conn, err error
 
 // reconnect closes the current connection and attempts to establish a new one.
 // It must be called with the mutex locked.
-func (w *WatchCommand) reconnect(ctx context.Context, reason error) {
+func (w *WatchConn) reconnect(ctx context.Context, reason error) {
 	_ = w.closeTheCn(reason)
 	_, _ = w.conn(ctx, "")
 }
 
 // closeTheCn closes the current connection.
 // It must be called with the mutex locked.
-func (w *WatchCommand) closeTheCn(reason error) error {
+func (w *WatchConn) closeTheCn(reason error) error {
 	if w.cn == nil {
 		return nil
 	}
 	if !w.closed {
-		internal.Logger.Printf(w.getContext(), "redis: discarding bad WatchCommand connection: %s", reason)
+		internal.Logger.Printf(w.getContext(), "redis: discarding bad WatchConn connection: %s", reason)
 	}
 	err := w.closeConn(w.cn)
 	w.cn = nil
 	return err
 }
 
-// Close closes the WatchCommand instance.
-func (w *WatchCommand) Close() error {
+// Close closes the WatchConn instance.
+func (w *WatchConn) Close() error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
@@ -169,7 +169,7 @@ func (w *WatchCommand) Close() error {
 
 // Watch subscribes the client to the specified command.
 // It returns an error if subscription fails.
-func (w *WatchCommand) Watch(ctx context.Context, cmdName string, args ...interface{}) (*WatchNotification, error) {
+func (w *WatchConn) Watch(ctx context.Context, cmdName string, args ...interface{}) (*WatchResult, error) {
 	w.mu.Lock()
 
 	// Subscribe to the command
@@ -196,7 +196,7 @@ func (w *WatchCommand) Watch(ctx context.Context, cmdName string, args ...interf
 
 // watchCommand sends the WATCH command to the server.
 // It must be called with the mutex locked.
-func (w *WatchCommand) watchCommand(ctx context.Context, cmdName string, args ...interface{}) error {
+func (w *WatchConn) watchCommand(ctx context.Context, cmdName string, args ...interface{}) error {
 	cn, err := w.conn(ctx, cmdName, args...)
 	if err != nil {
 		return err
@@ -208,7 +208,7 @@ func (w *WatchCommand) watchCommand(ctx context.Context, cmdName string, args ..
 }
 
 // newWMessage processes the reply from the Redis server and constructs a message.
-func (w *WatchCommand) newWMessage(reply interface{}) (interface{}, error) {
+func (w *WatchConn) newWMessage(reply interface{}) (interface{}, error) {
 	switch reply := reply.(type) {
 	case string:
 		return &Pong{Payload: reply}, nil
@@ -234,7 +234,7 @@ func (w *WatchCommand) newWMessage(reply interface{}) (interface{}, error) {
 }
 
 // processWatchCommandMessage parses a WATCHCOMMAND message from the server.
-func (w *WatchCommand) processWatchCommandMessage(payload []interface{}) (*WatchNotification, error) {
+func (w *WatchConn) processWatchCommandMessage(payload []interface{}) (*WatchResult, error) {
 	if len(payload) < 3 {
 		return nil, fmt.Errorf("redis: invalid watchcommand message format")
 	}
@@ -253,13 +253,13 @@ func (w *WatchCommand) processWatchCommandMessage(payload []interface{}) (*Watch
 
 	data := payload[2]
 
-	return &WatchNotification{Command: command, Fingerprint: name, Data: data}, nil
+	return &WatchResult{Command: command, Fingerprint: name, Data: data}, nil
 }
 
 // ReceiveTimeout acts like Receive but returns an error if a message
 // is not received in time. This is a low-level API and in most cases
 // Channel should be used instead.
-func (w *WatchCommand) ReceiveTimeout(ctx context.Context, timeout time.Duration) (interface{}, error) {
+func (w *WatchConn) ReceiveTimeout(ctx context.Context, timeout time.Duration) (interface{}, error) {
 	if w.cmd == nil {
 		w.cmd = NewCmd(ctx)
 	}
@@ -282,15 +282,15 @@ func (w *WatchCommand) ReceiveTimeout(ctx context.Context, timeout time.Duration
 	return w.newWMessage(w.cmd.Val())
 }
 
-// Receive returns a message as a WatchNotification, Pong, or error.
+// Receive returns a message as a WatchResult, Pong, or error.
 // This is a low-level API and in most cases Channel should be used instead.
-func (w *WatchCommand) Receive(ctx context.Context) (interface{}, error) {
+func (w *WatchConn) Receive(ctx context.Context) (interface{}, error) {
 	return w.ReceiveTimeout(ctx, 0)
 }
 
-// ReceiveWMessage returns a WatchNotification or error, ignoring Pong messages.
+// ReceiveWMessage returns a WatchResult or error, ignoring Pong messages.
 // This is a low-level API and in most cases Channel should be used instead.
-func (w *WatchCommand) ReceiveWMessage(ctx context.Context) (*WatchNotification, error) {
+func (w *WatchConn) ReceiveWMessage(ctx context.Context) (*WatchResult, error) {
 	for {
 		msg, err := w.Receive(ctx)
 		if err != nil {
@@ -300,7 +300,7 @@ func (w *WatchCommand) ReceiveWMessage(ctx context.Context) (*WatchNotification,
 		switch msg := msg.(type) {
 		case *Pong:
 			// Ignore.
-		case *WatchNotification:
+		case *WatchResult:
 			return msg, nil
 		default:
 			return nil, fmt.Errorf("redis: unknown message type: %T", msg)
@@ -308,7 +308,7 @@ func (w *WatchCommand) ReceiveWMessage(ctx context.Context) (*WatchNotification,
 	}
 }
 
-func (w *WatchCommand) getContext() context.Context {
+func (w *WatchConn) getContext() context.Context {
 	if w.cmd != nil {
 		return w.cmd.ctx
 	}
@@ -316,13 +316,13 @@ func (w *WatchCommand) getContext() context.Context {
 }
 
 // Channel returns a Go channel for concurrently receiving messages.
-// The channel is closed together with the WatchCommand. If the Go channel
+// The channel is closed together with the WatchConn. If the Go channel
 // is blocked full for 1 minute, the message is dropped.
 // Receive* APIs cannot be used after the channel is created.
 //
 // go-redis periodically sends ping messages to test connection health
 // and re-subscribes if ping cannot be received for 1 minute.
-func (w *WatchCommand) Channel(opts ...WChannelOption) <-chan *WatchNotification {
+func (w *WatchConn) Channel(opts ...WChannelOption) <-chan *WatchResult {
 	w.chOnce.Do(func() {
 		w.msgCh = newWatchCommandChannel(w, opts...)
 		w.msgCh.initMsgChan()
@@ -336,9 +336,9 @@ func (w *WatchCommand) Channel(opts ...WChannelOption) <-chan *WatchNotification
 
 // wChannel handles message delivery over a Go channel.
 type wChannel struct {
-	watchCmd *WatchCommand
+	watchCmd *WatchConn
 
-	msgCh chan *WatchNotification
+	msgCh chan *WatchResult
 	allCh chan interface{}
 	ping  chan struct{}
 
@@ -359,7 +359,7 @@ func WithWChannelSize(size int) WChannelOption {
 }
 
 // WithWChannelHealthCheckInterval specifies the health check interval.
-// WatchCommand will ping the Redis server if it does not receive any messages within the interval.
+// WatchConn will ping the Redis server if it does not receive any messages within the interval.
 // To disable health check, use zero interval.
 // The default is 3 seconds.
 func WithWChannelHealthCheckInterval(d time.Duration) WChannelOption {
@@ -378,7 +378,7 @@ func WithWChannelSendTimeout(d time.Duration) WChannelOption {
 }
 
 // newWatchCommandChannel creates a new wChannel.
-func newWatchCommandChannel(watchCmd *WatchCommand, opts ...WChannelOption) *wChannel {
+func newWatchCommandChannel(watchCmd *WatchConn, opts ...WChannelOption) *wChannel {
 	c := &wChannel{
 		watchCmd:        watchCmd,
 		chanSize:        100,
@@ -395,7 +395,7 @@ func newWatchCommandChannel(watchCmd *WatchCommand, opts ...WChannelOption) *wCh
 }
 
 // Ping sends a PING command to the server to check connection health.
-func (w *WatchCommand) Ping(ctx context.Context, payload ...string) error {
+func (w *WatchConn) Ping(ctx context.Context, payload ...string) error {
 	args := []interface{}{"ping"}
 	if len(payload) == 1 {
 		args = append(args, payload[0])
@@ -447,7 +447,7 @@ func (c *wChannel) initHealthCheck() {
 // initMsgChan initializes the message receiving routine.
 func (c *wChannel) initMsgChan() {
 	ctx := context.TODO()
-	c.msgCh = make(chan *WatchNotification, c.chanSize)
+	c.msgCh = make(chan *WatchResult, c.chanSize)
 
 	go func() {
 		timer := time.NewTimer(time.Minute)
@@ -479,7 +479,7 @@ func (c *wChannel) initMsgChan() {
 			switch msg := msg.(type) {
 			case *Pong:
 				// Ignore.
-			case *WatchNotification:
+			case *WatchResult:
 				timer.Reset(c.chanSendTimeout)
 				select {
 				case c.msgCh <- msg:
@@ -500,7 +500,7 @@ func (c *wChannel) initMsgChan() {
 
 // Unwatch unsubscribes the client from the specified command.
 // It returns an error if unsubscription fails.
-func (w *WatchCommand) Unwatch(ctx context.Context, cmdName string, args ...interface{}) error {
+func (w *WatchConn) Unwatch(ctx context.Context, cmdName string, args ...interface{}) error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
@@ -513,7 +513,7 @@ func (w *WatchCommand) Unwatch(ctx context.Context, cmdName string, args ...inte
 
 // unwatchCommand sends the .UNWATCH command to the server.
 // It must be called with the mutex locked.
-func (w *WatchCommand) unwatchCommand(ctx context.Context, cmdName string, args ...interface{}) error {
+func (w *WatchConn) unwatchCommand(ctx context.Context, cmdName string, args ...interface{}) error {
 	cn, err := w.conn(ctx, cmdName)
 	if err != nil {
 		return err
@@ -525,7 +525,7 @@ func (w *WatchCommand) unwatchCommand(ctx context.Context, cmdName string, args 
 }
 
 // _unwatchCommand sends the .UNWATCH command to the Redis server.
-func (w *WatchCommand) _unwatchCommand(ctx context.Context, cn *pool.Conn, cmdName string, args ...interface{}) error {
+func (w *WatchConn) _unwatchCommand(ctx context.Context, cn *pool.Conn, cmdName string, args ...interface{}) error {
 	cmdArgs := make([]interface{}, 0, 2+len(args))
 	cmdArgs = append(cmdArgs, cmdName)
 	cmdArgs = append(cmdArgs, args...)

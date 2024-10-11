@@ -6,35 +6,35 @@ import (
 	"strconv"
 )
 
-// ZRangeWatch wraps the WatchCommand to handle ZRANGE responses with strong typing.
+// ZRangeWatch wraps the WatchConn to handle ZRANGE responses with strong typing.
 type ZRangeWatch struct {
-	watchCommand *WatchCommand
+	watchConn *WatchConn
 }
 
-type ZRangeWatchNotification struct {
+type ZRangeWatchResult struct {
 	Command     string
 	Fingerprint string
 	Data        []Z
 }
 
-func (z *ZRangeWatchNotification) String() string {
-	return fmt.Sprintf("ZRangeWatchNotification(Command=%v, Fingerprint=%v, Data=%v)", z.Command, z.Fingerprint, z.Data)
+func (z *ZRangeWatchResult) String() string {
+	return fmt.Sprintf("ZRangeWatchResult(Command=%v, Fingerprint=%v, Data=%v)", z.Command, z.Fingerprint, z.Data)
 }
 
 // NewZRangeWatch creates a new ZRangeWatch.
 func NewZRangeWatch(ctx context.Context, client *Client) (*ZRangeWatch, error) {
-	watch := client.WatchCommand(ctx)
+	watch := client.WatchConn(ctx)
 	if watch == nil {
 		return nil, fmt.Errorf("failed to create watch command")
 	}
 
-	return &ZRangeWatch{watchCommand: watch}, nil
+	return &ZRangeWatch{watchConn: watch}, nil
 }
 
 // Watch starts watching the ZRANGE command for the specified key.
-func (z *ZRangeWatch) Watch(ctx context.Context, args ...interface{}) (*ZRangeWatchNotification, error) {
+func (z *ZRangeWatch) Watch(ctx context.Context, args ...interface{}) (*ZRangeWatchResult, error) {
 	// Use the ZRANGE command with necessary arguments.
-	firstMsg, err := z.watchCommand.Watch(ctx, "ZRANGE", args...)
+	firstMsg, err := z.watchConn.Watch(ctx, "ZRANGE", args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start ZRANGE watch: %v", err)
 	}
@@ -44,9 +44,9 @@ func (z *ZRangeWatch) Watch(ctx context.Context, args ...interface{}) (*ZRangeWa
 }
 
 // Channel returns a channel for receiving subsequent ZRANGE messages with strong typing.
-func (z *ZRangeWatch) Channel() <-chan *ZRangeWatchNotification {
-	msgCh := z.watchCommand.Channel()
-	scoreCh := make(chan *ZRangeWatchNotification)
+func (z *ZRangeWatch) Channel() <-chan *ZRangeWatchResult {
+	msgCh := z.watchConn.Channel()
+	scoreCh := make(chan *ZRangeWatchResult)
 
 	go func() {
 		for msg := range msgCh {
@@ -62,7 +62,7 @@ func (z *ZRangeWatch) Channel() <-chan *ZRangeWatchNotification {
 }
 
 // parseScores parses the Data from ZRANGE into a slice of Score.
-func (z *ZRangeWatch) parseScores(watchNotification *WatchNotification) (*ZRangeWatchNotification, error) {
+func (z *ZRangeWatch) parseScores(watchNotification *WatchResult) (*ZRangeWatchResult, error) {
 	dataList, ok := watchNotification.Data.([]interface{})
 	if !ok {
 		return nil, fmt.Errorf("unexpected data type in ZRANGE message")
@@ -84,14 +84,14 @@ func (z *ZRangeWatch) parseScores(watchNotification *WatchNotification) (*ZRange
 			Score:  scoreFloat,
 		})
 	}
-	return &ZRangeWatchNotification{
+	return &ZRangeWatchResult{
 		Command:     watchNotification.Command,
 		Fingerprint: watchNotification.Fingerprint,
 		Data:        scores,
 	}, nil
 }
 
-// Close closes the underlying WatchCommand.
+// Close closes the underlying WatchConn.
 func (z *ZRangeWatch) Close() error {
-	return z.watchCommand.Close()
+	return z.watchConn.Close()
 }

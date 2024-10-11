@@ -749,8 +749,8 @@ func (c *Client) qwatch() *QWatch {
 	return qwatch
 }
 
-func (c *Client) watchCommand() *WatchCommand {
-	watch := &WatchCommand{
+func (c *Client) watchCommand() *WatchConn {
+	watch := &WatchConn{
 		opt: c.opt,
 		newConn: func(ctx context.Context, query string, args ...interface{}) (*pool.Conn, error) {
 			return c.newConn(ctx)
@@ -799,16 +799,16 @@ func (c *Client) QWatch(ctx context.Context) *QWatch {
 	return c.qwatch()
 }
 
-func (c *Client) ZRangeWatcher(ctx context.Context) (*ZRangeWatch, error) {
-	watch := c.WatchCommand(ctx)
+func (c *Client) ZRangeWatchConn(ctx context.Context) (*ZRangeWatch, error) {
+	watch := c.WatchConn(ctx)
 	if watch == nil {
 		return nil, fmt.Errorf("failed to create watch command")
 	}
 
-	return &ZRangeWatch{watchCommand: watch}, nil
+	return &ZRangeWatch{watchConn: watch}, nil
 }
 
-func (c *Client) WatchCommand(ctx context.Context) *WatchCommand {
+func (c *Client) WatchConn(ctx context.Context) *WatchConn {
 	return c.watchCommand()
 }
 
