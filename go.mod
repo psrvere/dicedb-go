@@ -1,4 +1,4 @@
-module github.com/dicedb/go-dice
+module github.com/dicedb/dicedb-go
 
 go 1.18
 
