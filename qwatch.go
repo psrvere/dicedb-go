@@ -180,7 +180,7 @@ func (q *QWatch) WatchQuery(ctx context.Context, query string, args ...interface
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
-	err := q.watchQuery(ctx, "QWATCH", query, args...)
+	err := q.watchQuery(ctx, "Q.WATCH", query, args...)
 	if err != nil {
 		return err
 	}
@@ -222,7 +222,7 @@ func (q *QWatch) newQMessage(reply interface{}) (interface{}, error) {
 		}
 
 		switch kind {
-		case "qwatch":
+		case "q.watch":
 			return q.processQWatchMessage(reply)
 		case "pong":
 			return parsePongMessage(reply)
@@ -257,13 +257,13 @@ func (q *QWatch) processQWatchMessage(payload []interface{}) (*QMessage, error) 
 	// Ensure command is a string
 	command, ok := payload[0].(string)
 	if !ok {
-		return nil, fmt.Errorf("redis: invalid command in qwatch message, expected string, got %T", payload[0])
+		return nil, fmt.Errorf("redis: invalid command in q.watch message, expected string, got %T", payload[0])
 	}
 
 	// Ensure query is a string
 	query, ok := payload[1].(string)
 	if !ok {
-		return nil, fmt.Errorf("redis: invalid query in qwatch message, expected string, got %T", payload[1])
+		return nil, fmt.Errorf("redis: invalid query in q.watch message, expected string, got %T", payload[1])
 	}
 
 	updates, err := parseUpdates(payload[2])
@@ -560,7 +560,7 @@ func (q *QWatch) UnwatchQuery(ctx context.Context, query string) error {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
-	err := q.unwatchQuery(ctx, "QUNWATCH", query)
+	err := q.unwatchQuery(ctx, "Q.UNWATCH", query)
 	if err == nil {
 		delete(q.queries, query)
 	}
