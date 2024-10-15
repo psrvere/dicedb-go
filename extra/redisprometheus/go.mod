@@ -1,12 +1,14 @@
 module github.com/redis/go-redis/extra/redisprometheus/v9
 
-go 1.19
+go 1.23
+
+toolchain go1.23.0
 
 replace github.com/dicedb/dicedb-go => ../..
 
 require (
-	github.com/prometheus/client_golang v1.14.0
 	github.com/dicedb/dicedb-go v0.0.0-20241011194507-ad62a2dfc08e
+	github.com/prometheus/client_golang v1.14.0
 )
 
 require (
