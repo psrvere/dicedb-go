@@ -1,6 +1,8 @@
 module github.com/redis/go-redis/example/redis-bloom
 
-go 1.18
+go 1.23
+
+toolchain go1.23.0
 
 replace github.com/dicedb/dicedb-go => ../..
 
