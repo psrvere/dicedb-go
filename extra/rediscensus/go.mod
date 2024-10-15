@@ -8,7 +8,7 @@ replace github.com/redis/go-redis/extra/rediscmd/v9 => ../rediscmd
 
 require (
 	github.com/redis/go-redis/extra/rediscmd/v9 v9.5.3
-	github.com/dicedb/dicedb-go v9.5.3
+	github.com/dicedb/dicedb-go v0.0.0-20241011194507-ad62a2dfc08e
 	go.opencensus.io v0.24.0
 )
 

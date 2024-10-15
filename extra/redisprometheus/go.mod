@@ -6,7 +6,7 @@ replace github.com/dicedb/dicedb-go => ../..
 
 require (
 	github.com/prometheus/client_golang v1.14.0
-	github.com/dicedb/dicedb-go v9.5.3
+	github.com/dicedb/dicedb-go v0.0.0-20241011194507-ad62a2dfc08e
 )
 
 require (

@@ -6,7 +6,7 @@ replace github.com/dicedb/dicedb-go => ../..
 
 require (
 	github.com/davecgh/go-spew v1.1.1
-	github.com/dicedb/dicedb-go v9.5.3
+	github.com/dicedb/dicedb-go v0.0.0-20241011194507-ad62a2dfc08e
 )
 
 require (

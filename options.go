@@ -154,6 +154,9 @@ type Options struct {
 	// Add suffix to client name. Default is empty.
 	IdentitySuffix string
 
+	// Enable Unstable mode for Redis Search module with RESP3.
+	UnstableResp3 bool
+
 	// Enables pretty response
 	// Currently only supported for .Do() command
 	EnablePrettyResponse bool

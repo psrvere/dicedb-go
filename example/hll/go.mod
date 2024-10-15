@@ -6,7 +6,7 @@ toolchain go1.23.0
 
 replace github.com/dicedb/dicedb-go => ../..
 
-require github.com/dicedb/dicedb-go v9.5.3
+require github.com/dicedb/dicedb-go v0.0.0-20241011194507-ad62a2dfc08e
 
 require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
