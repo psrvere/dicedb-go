@@ -153,7 +153,7 @@ func (q *QWatch) closeTheCn(reason error) error {
 		return nil
 	}
 	if !q.closed {
-		internal.Logger.Printf(q.getContext(), "redis: discarding bad QWatch connection: %s", reason)
+		q.closed = true
 	}
 	err := q.closeConn(q.cn)
 	q.cn = nil

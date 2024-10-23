@@ -147,7 +147,7 @@ func (w *WatchConn) closeTheCn(reason error) error {
 		return nil
 	}
 	if !w.closed {
-		internal.Logger.Printf(w.getContext(), "redis: discarding bad WatchConn connection: %s", reason)
+		w.closed = true
 	}
 	err := w.closeConn(w.cn)
 	w.cn = nil
