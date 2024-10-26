@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/dicedb/dicedb-go/internal"
-	"github.com/dicedb/dicedb-go/internal/pool"
-	"github.com/dicedb/dicedb-go/internal/proto"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/dicedb/dicedb-go/internal"
+	"github.com/dicedb/dicedb-go/internal/pool"
+	"github.com/dicedb/dicedb-go/internal/proto"
 )
 
 // WatchResult represents a message received via WatchConn.
@@ -582,6 +583,6 @@ func (w *WatchConn) _unwatchCommand(ctx context.Context, cn *pool.Conn, cmdName 
 	cmdArgs := make([]interface{}, 0, 2+len(args))
 	cmdArgs = append(cmdArgs, cmdName)
 	cmdArgs = append(cmdArgs, args...)
-	cmd := NewSliceCmd(ctx, cmdArgs)
+	cmd := NewSliceCmd(ctx, cmdArgs...)
 	return w.writeCmd(ctx, cn, cmd)
 }
