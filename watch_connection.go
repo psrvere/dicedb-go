@@ -12,6 +12,7 @@ import (
 	"github.com/dicedb/dicedb-go/internal"
 	"github.com/dicedb/dicedb-go/internal/pool"
 	"github.com/dicedb/dicedb-go/internal/proto"
+	"github.com/google/uuid"
 )
 
 // WatchResult represents a message received via WatchConn.
@@ -188,12 +189,34 @@ func (w *WatchConn) Watch(ctx context.Context, cmdName string, args ...interface
 	w.mu.Unlock()
 
 	// Get the first message synchronously to return it to the user.
-	firstMsg, err := w.ReceiveWMessage(ctx)
-	if err != nil {
-		return nil, err
+
+	for {
+		firstMsg, err := w.ReceiveWMessage(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		label := firstMsg.Command
+		_, err = uuid.Parse(label)
+
+		// if label is a valid UUID, it's the first message
+		if err == nil {
+			return firstMsg, nil
+
+			// else it's an update message
+		} else {
+			// initialize the channel with default options if it's not already
+			if w.msgCh == nil {
+				w.chOnce.Do(func() {
+					w.msgCh = newWatchCommandChannel(w)
+					w.msgCh.initMsgChan()
+				})
+			}
+			w.msgCh.msgCh <- firstMsg
+		}
+
 	}
 
-	return firstMsg, nil
 }
 
 func (w *WatchConn) GetWatch(ctx context.Context, args ...interface{}) (*WatchResult, error) {
@@ -377,13 +400,11 @@ func (w *WatchConn) getContext() context.Context {
 // go-redis periodically sends ping messages to test connection health
 // and re-subscribes if ping cannot be received for 1 minute.
 func (w *WatchConn) Channel(opts ...WChannelOption) <-chan *WatchResult {
-	w.chOnce.Do(func() {
-		w.msgCh = newWatchCommandChannel(w, opts...)
-		w.msgCh.initMsgChan()
-	})
 	if w.msgCh == nil {
-		err := fmt.Errorf("redis: Channel can't be called after ChannelWithSubscriptions")
-		panic(err)
+		w.chOnce.Do(func() {
+			w.msgCh = newWatchCommandChannel(w, opts...)
+			w.msgCh.initMsgChan()
+		})
 	}
 	return w.msgCh.msgCh
 }
