@@ -11,6 +11,6 @@ require (
 	github.com/redis/go-redis/v9 v9.6.2
 )
 
-require github.com/google/uuid v1.6.0 // indirect
+require github.com/google/uuid v1.6.0
 
 replace github.com/dicedb/dicedb-go => github.com/psrvere/dicedb-go v0.0.0-20241106150820-edc6d95636d6
