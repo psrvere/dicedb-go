@@ -330,7 +330,7 @@ func (w *WatchConn) ReceiveTimeout(ctx context.Context, timeout time.Duration) (
 		w.cmd = NewCmd(ctx)
 	}
 
-	cn, err := w.connWithLock(ctx, "ReceiveTimeout", "")
+	cn, err := w.connWithLock(ctx, "")
 	if err != nil {
 		return nil, err
 	}
