@@ -472,7 +472,7 @@ func (w *WatchConn) Ping(ctx context.Context, payload ...string) error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
-	cn, err := w.conn(ctx, "Ping", "")
+	cn, err := w.conn(ctx, "")
 	if err != nil {
 		return err
 	}
