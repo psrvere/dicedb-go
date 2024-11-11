@@ -202,6 +202,7 @@ func (w *WatchConn) Watch(ctx context.Context, cmdName string, args ...interface
 		if !ok {
 			return nil, fmt.Errorf("connection closed before receiving first update")
 		}
+		firstMsg.Command = "GET" // mask label from the user
 		return firstMsg, nil
 	case <-ctx.Done():
 		return nil, ctx.Err()
