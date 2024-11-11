@@ -175,6 +175,13 @@ func (w *WatchConn) Close() error {
 func (w *WatchConn) Watch(ctx context.Context, cmdName string, args ...interface{}) (*WatchResult, error) {
 	w.mu.Lock()
 
+	w.chOnce.Do(func() {
+		w.msgCh = newWatchCommandChannel(w)
+		// Create firstUpdateCh with buffer of 1 to avoid blocking
+		w.msgCh.firstUpdateCh = make(chan *WatchResult, 1)
+		w.msgCh.initMsgChan()
+	})
+
 	// Subscribe to the command
 	err := w.watchCommand(ctx, cmdName, args...)
 	if err != nil {
@@ -190,33 +197,15 @@ func (w *WatchConn) Watch(ctx context.Context, cmdName string, args ...interface
 
 	// Get the first message synchronously to return it to the user.
 
-	for {
-		firstMsg, err := w.ReceiveWMessage(ctx)
-		if err != nil {
-			return nil, err
+	select {
+	case firstMsg, ok := <-w.msgCh.firstUpdateCh:
+		if !ok {
+			return nil, fmt.Errorf("connection closed before receiving first update")
 		}
-
-		label := firstMsg.Command
-		_, err = uuid.Parse(label)
-
-		// if label is a valid UUID, it's the first message
-		if err == nil {
-			return firstMsg, nil
-
-			// else it's an update message
-		} else {
-			// initialize the channel with default options if it's not already
-			if w.msgCh == nil {
-				w.chOnce.Do(func() {
-					w.msgCh = newWatchCommandChannel(w)
-					w.msgCh.initMsgChan()
-				})
-			}
-			w.msgCh.msgCh <- firstMsg
-		}
-
+		return firstMsg, nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
 	}
-
 }
 
 func (w *WatchConn) GetWatch(ctx context.Context, args ...interface{}) (*WatchResult, error) {
@@ -341,7 +330,7 @@ func (w *WatchConn) ReceiveTimeout(ctx context.Context, timeout time.Duration) (
 		w.cmd = NewCmd(ctx)
 	}
 
-	cn, err := w.connWithLock(ctx, "")
+	cn, err := w.connWithLock(ctx, "ReceiveTimeout", "")
 	if err != nil {
 		return nil, err
 	}
@@ -400,22 +389,25 @@ func (w *WatchConn) getContext() context.Context {
 // go-redis periodically sends ping messages to test connection health
 // and re-subscribes if ping cannot be received for 1 minute.
 func (w *WatchConn) Channel(opts ...WChannelOption) <-chan *WatchResult {
+	w.chOnce.Do(func() {
+		w.msgCh = newWatchCommandChannel(w, opts...)
+		w.msgCh.initMsgChan()
+	})
 	if w.msgCh == nil {
-		w.chOnce.Do(func() {
-			w.msgCh = newWatchCommandChannel(w, opts...)
-			w.msgCh.initMsgChan()
-		})
+		err := fmt.Errorf("redis: Channel can't be called after ChannelWithSubscriptions")
+		panic(err)
 	}
-	return w.msgCh.msgCh
+	return w.msgCh.updateCh
 }
 
 // wChannel handles message delivery over a Go channel.
 type wChannel struct {
 	watchCmd *WatchConn
 
-	msgCh chan *WatchResult
-	allCh chan interface{}
-	ping  chan struct{}
+	firstUpdateCh chan *WatchResult
+	updateCh      chan *WatchResult
+
+	ping chan struct{}
 
 	chanSize        int
 	chanSendTimeout time.Duration
@@ -480,7 +472,7 @@ func (w *WatchConn) Ping(ctx context.Context, payload ...string) error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
-	cn, err := w.conn(ctx, "")
+	cn, err := w.conn(ctx, "Ping", "")
 	if err != nil {
 		return err
 	}
@@ -522,7 +514,7 @@ func (c *wChannel) initHealthCheck() {
 // initMsgChan initializes the message receiving routine.
 func (c *wChannel) initMsgChan() {
 	ctx := context.TODO()
-	c.msgCh = make(chan *WatchResult, c.chanSize)
+	c.updateCh = make(chan *WatchResult, c.chanSize)
 
 	go func() {
 		timer := time.NewTimer(time.Minute)
@@ -533,7 +525,8 @@ func (c *wChannel) initMsgChan() {
 			msg, err := c.watchCmd.Receive(ctx)
 			if err != nil {
 				if errors.Is(err, pool.ErrClosed) {
-					close(c.msgCh)
+					close(c.firstUpdateCh)
+					close(c.updateCh)
 					return
 				}
 				if errCount > 0 {
@@ -556,8 +549,29 @@ func (c *wChannel) initMsgChan() {
 				// Ignore.
 			case *WatchResult:
 				timer.Reset(c.chanSendTimeout)
+
+				// check if the message is the first update
+				label := msg.Command
+				_, err = uuid.Parse(label)
+
+				if err == nil {
+					select {
+					case c.firstUpdateCh <- msg:
+						if !timer.Stop() {
+							<-timer.C
+						}
+					case <-timer.C:
+						internal.Logger.Printf(
+							ctx, "redis: %s channel is full for %s (message is dropped)",
+							c.watchCmd, c.chanSendTimeout)
+					}
+
+					continue
+				}
+
+				// else it's an update message
 				select {
-				case c.msgCh <- msg:
+				case c.updateCh <- msg:
 					if !timer.Stop() {
 						<-timer.C
 					}
@@ -566,6 +580,7 @@ func (c *wChannel) initMsgChan() {
 						ctx, "redis: %s channel is full for %s (message is dropped)",
 						c.watchCmd, c.chanSendTimeout)
 				}
+
 			default:
 				internal.Logger.Printf(ctx, "redis: unknown message type: %T", msg)
 			}
