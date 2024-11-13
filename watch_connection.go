@@ -177,10 +177,16 @@ func (w *WatchConn) Watch(ctx context.Context, cmdName string, args ...interface
 
 	w.chOnce.Do(func() {
 		w.msgCh = newWatchCommandChannel(w)
-		// Create firstUpdateCh with buffer of 1 to avoid blocking
-		w.msgCh.firstUpdateCh = make(chan *WatchResult, 1)
 		w.msgCh.initMsgChan()
 	})
+
+	// create a unique watch label for this request
+	watchLabel := uuid.New().String()
+	args = append(args, watchLabel)
+
+	// create a dedicated firstMsgCh for this request
+	firstMsgCh := make(chan *WatchResult, 1)
+	w.msgCh.watchLabelFirstMsgChMap[watchLabel] = firstMsgCh
 
 	// Subscribe to the command
 	err := w.watchCommand(ctx, cmdName, args...)
@@ -198,11 +204,12 @@ func (w *WatchConn) Watch(ctx context.Context, cmdName string, args ...interface
 	// Get the first message synchronously to return it to the user.
 
 	select {
-	case firstMsg, ok := <-w.msgCh.firstUpdateCh:
+	case firstMsg, ok := <-firstMsgCh:
 		if !ok {
 			return nil, fmt.Errorf("connection closed before receiving first update")
 		}
 		firstMsg.Command = "GET" // mask label from the user
+		close(firstMsgCh)
 		return firstMsg, nil
 	case <-ctx.Done():
 		return nil, ctx.Err()
@@ -405,10 +412,10 @@ func (w *WatchConn) Channel(opts ...WChannelOption) <-chan *WatchResult {
 type wChannel struct {
 	watchCmd *WatchConn
 
-	firstUpdateCh chan *WatchResult
-	updateCh      chan *WatchResult
+	updateCh chan *WatchResult // channel to receive all updates - first and subsequent
+	ping     chan struct{}
 
-	ping chan struct{}
+	watchLabelFirstMsgChMap map[string]chan *WatchResult
 
 	chanSize        int
 	chanSendTimeout time.Duration
@@ -513,9 +520,11 @@ func (c *wChannel) initHealthCheck() {
 }
 
 // initMsgChan initializes the message receiving routine.
+// it routes first response to the dedicated channel and subsequent responses to the update channel
 func (c *wChannel) initMsgChan() {
 	ctx := context.TODO()
 	c.updateCh = make(chan *WatchResult, c.chanSize)
+	c.watchLabelFirstMsgChMap = make(map[string]chan *WatchResult)
 
 	go func() {
 		timer := time.NewTimer(time.Minute)
@@ -526,7 +535,6 @@ func (c *wChannel) initMsgChan() {
 			msg, err := c.watchCmd.Receive(ctx)
 			if err != nil {
 				if errors.Is(err, pool.ErrClosed) {
-					close(c.firstUpdateCh)
 					close(c.updateCh)
 					return
 				}
@@ -551,13 +559,12 @@ func (c *wChannel) initMsgChan() {
 			case *WatchResult:
 				timer.Reset(c.chanSendTimeout)
 
-				// check if the message is the first update
-				label := msg.Command
-				_, err = uuid.Parse(label)
-
+				// route first message to the dedicated channel
+				label, err := uuid.Parse(msg.Command)
 				if err == nil {
+					firstMsgCh := c.watchLabelFirstMsgChMap[label.String()]
 					select {
-					case c.firstUpdateCh <- msg:
+					case firstMsgCh <- msg:
 						if !timer.Stop() {
 							<-timer.C
 						}
@@ -570,7 +577,7 @@ func (c *wChannel) initMsgChan() {
 					continue
 				}
 
-				// else it's an update message
+				// route subsequent messages to the update channel
 				select {
 				case c.updateCh <- msg:
 					if !timer.Stop() {
