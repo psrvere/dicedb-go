@@ -38,7 +38,7 @@ const (
 
 //------------------------------------------------------------------------------
 
-const Nil = RedisError("redis: nil") // nolint:errname
+const Nil = RedisError("err: nil") // nolint:errname
 
 type RedisError string
 
@@ -146,7 +146,7 @@ func (r *Reader) readLine() ([]byte, error) {
 		b = full
 	}
 	if len(b) <= 2 || b[len(b)-1] != '\n' || b[len(b)-2] != '\r' {
-		return nil, fmt.Errorf("redis: invalid reply: %q", b)
+		return nil, fmt.Errorf("err: invalid reply: %q", b)
 	}
 	return b[:len(b)-2], nil
 }
@@ -179,7 +179,7 @@ func (r *Reader) ReadReply() (interface{}, error) {
 	case RespMap:
 		return r.readMap(line)
 	}
-	return nil, fmt.Errorf("redis: can't parse %.100q", line)
+	return nil, fmt.Errorf("err: can't parse %.100q", line)
 }
 
 func (r *Reader) readFloat(line []byte) (float64, error) {
@@ -202,7 +202,7 @@ func (r *Reader) readBool(line []byte) (bool, error) {
 	case "f":
 		return false, nil
 	}
-	return false, fmt.Errorf("redis: can't parse bool reply: %q", line)
+	return false, fmt.Errorf("err: can't parse bool reply: %q", line)
 }
 
 func (r *Reader) readBigInt(line []byte) (*big.Int, error) {
@@ -210,7 +210,7 @@ func (r *Reader) readBigInt(line []byte) (*big.Int, error) {
 	if i, ok := i.SetString(string(line[1:]), 10); ok {
 		return i, nil
 	}
-	return nil, fmt.Errorf("redis: can't parse bigInt reply: %q", line)
+	return nil, fmt.Errorf("err: can't parse bigInt reply: %q", line)
 }
 
 func (r *Reader) readStringReply(line []byte) (string, error) {
@@ -234,7 +234,7 @@ func (r *Reader) readVerb(line []byte) (string, error) {
 		return "", err
 	}
 	if len(s) < 4 || s[3] != ':' {
-		return "", fmt.Errorf("redis: can't parse verbatim string reply: %q", line)
+		return "", fmt.Errorf("err: can't parse verbatim string reply: %q", line)
 	}
 	return s[4:], nil
 }
@@ -318,7 +318,7 @@ func (r *Reader) ReadInt() (int64, error) {
 		}
 		return b.Int64(), nil
 	}
-	return 0, fmt.Errorf("redis: can't parse int reply: %.100q", line)
+	return 0, fmt.Errorf("err: can't parse int reply: %.100q", line)
 }
 
 func (r *Reader) ReadUint() (uint64, error) {
@@ -345,7 +345,7 @@ func (r *Reader) ReadUint() (uint64, error) {
 		}
 		return b.Uint64(), nil
 	}
-	return 0, fmt.Errorf("redis: can't parse uint reply: %.100q", line)
+	return 0, fmt.Errorf("err: can't parse uint reply: %.100q", line)
 }
 
 func (r *Reader) ReadFloat() (float64, error) {
@@ -365,7 +365,7 @@ func (r *Reader) ReadFloat() (float64, error) {
 		}
 		return strconv.ParseFloat(s, 64)
 	}
-	return 0, fmt.Errorf("redis: can't parse float reply: %.100q", line)
+	return 0, fmt.Errorf("err: can't parse float reply: %.100q", line)
 }
 
 func (r *Reader) ReadString() (string, error) {
@@ -391,7 +391,7 @@ func (r *Reader) ReadString() (string, error) {
 		}
 		return b.String(), nil
 	}
-	return "", fmt.Errorf("redis: can't parse reply=%.100q reading string", line)
+	return "", fmt.Errorf("err: can't parse reply=%.100q reading string", line)
 }
 
 func (r *Reader) ReadBool() (bool, error) {
@@ -417,7 +417,7 @@ func (r *Reader) ReadFixedArrayLen(fixedLen int) error {
 		return err
 	}
 	if n != fixedLen {
-		return fmt.Errorf("redis: got %d elements in the array, wanted %d", n, fixedLen)
+		return fmt.Errorf("err: got %d elements in the array, wanted %d", n, fixedLen)
 	}
 	return nil
 }
@@ -432,7 +432,7 @@ func (r *Reader) ReadArrayLen() (int, error) {
 	case RespArray, RespSet, RespPush:
 		return replyLen(line)
 	default:
-		return 0, fmt.Errorf("redis: can't parse array/set/push reply: %.100q", line)
+		return 0, fmt.Errorf("err: can't parse array/set/push reply: %.100q", line)
 	}
 }
 
@@ -443,7 +443,7 @@ func (r *Reader) ReadFixedMapLen(fixedLen int) error {
 		return err
 	}
 	if n != fixedLen {
-		return fmt.Errorf("redis: got %d elements in the map, wanted %d", n, fixedLen)
+		return fmt.Errorf("err: got %d elements in the map, wanted %d", n, fixedLen)
 	}
 	return nil
 }
@@ -467,11 +467,11 @@ func (r *Reader) ReadMapLen() (int, error) {
 			return 0, err
 		}
 		if n%2 != 0 {
-			return 0, fmt.Errorf("redis: the length of the array must be a multiple of 2, got: %d", n)
+			return 0, fmt.Errorf("err: the length of the array must be a multiple of 2, got: %d", n)
 		}
 		return n / 2, nil
 	default:
-		return 0, fmt.Errorf("redis: can't parse map reply: %.100q", line)
+		return 0, fmt.Errorf("err: can't parse map reply: %.100q", line)
 	}
 }
 
@@ -487,7 +487,7 @@ func (r *Reader) DiscardNext() error {
 // Discard the data represented by line.
 func (r *Reader) Discard(line []byte) (err error) {
 	if len(line) == 0 {
-		return errors.New("redis: invalid line")
+		return errors.New("err: invalid line")
 	}
 	switch line[0] {
 	case RespStatus, RespError, RespInt, RespNil, RespFloat, RespBool, RespBigInt:
@@ -521,7 +521,7 @@ func (r *Reader) Discard(line []byte) (err error) {
 		return nil
 	}
 
-	return fmt.Errorf("redis: can't parse %.100q", line)
+	return fmt.Errorf("err: can't parse %.100q", line)
 }
 
 func replyLen(line []byte) (n int, err error) {
@@ -531,7 +531,7 @@ func replyLen(line []byte) (n int, err error) {
 	}
 
 	if n < -1 {
-		return 0, fmt.Errorf("redis: invalid reply: %q", line)
+		return 0, fmt.Errorf("err: invalid reply: %q", line)
 	}
 
 	switch line[0] {

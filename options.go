@@ -296,7 +296,7 @@ func ParseURL(redisURL string) (*Options, error) {
 	case "unix":
 		return setupUnixConn(u)
 	default:
-		return nil, fmt.Errorf("redis: invalid URL scheme: %s", u.Scheme)
+		return nil, fmt.Errorf("err: invalid URL scheme: %s", u.Scheme)
 	}
 }
 
@@ -317,10 +317,10 @@ func setupTCPConn(u *url.URL) (*Options, error) {
 	case 1:
 		var err error
 		if o.DB, err = strconv.Atoi(f[0]); err != nil {
-			return nil, fmt.Errorf("redis: invalid database number: %q", f[0])
+			return nil, fmt.Errorf("err: invalid database number: %q", f[0])
 		}
 	default:
-		return nil, fmt.Errorf("redis: invalid URL path: %s", u.Path)
+		return nil, fmt.Errorf("err: invalid URL path: %s", u.Path)
 	}
 
 	if u.Scheme == "rediss" {
@@ -356,7 +356,7 @@ func setupUnixConn(u *url.URL) (*Options, error) {
 	}
 
 	if strings.TrimSpace(u.Path) == "" { // path is required with unix connection
-		return nil, errors.New("redis: empty unix socket path")
+		return nil, errors.New("err: empty unix socket path")
 	}
 	o.Addr = u.Path
 	o.Username, o.Password = getUserPassword(u)
@@ -397,7 +397,7 @@ func (o *queryOptions) int(name string) int {
 		return i
 	}
 	if o.err == nil {
-		o.err = fmt.Errorf("redis: invalid %s number: %s", name, err)
+		o.err = fmt.Errorf("err: invalid %s number: %s", name, err)
 	}
 	return 0
 }
@@ -420,7 +420,7 @@ func (o *queryOptions) duration(name string) time.Duration {
 		return dur
 	}
 	if o.err == nil {
-		o.err = fmt.Errorf("redis: invalid %s duration: %w", name, err)
+		o.err = fmt.Errorf("err: invalid %s duration: %w", name, err)
 	}
 	return 0
 }
@@ -433,7 +433,7 @@ func (o *queryOptions) bool(name string) bool {
 		return false
 	default:
 		if o.err == nil {
-			o.err = fmt.Errorf("redis: invalid %s boolean: expected true/false/1/0 or an empty string, got %q", name, s)
+			o.err = fmt.Errorf("err: invalid %s boolean: expected true/false/1/0 or an empty string, got %q", name, s)
 		}
 		return false
 	}
@@ -459,7 +459,7 @@ func setupConnParams(u *url.URL, o *Options) (*Options, error) {
 	if tmp := q.string("db"); tmp != "" {
 		db, err := strconv.Atoi(tmp)
 		if err != nil {
-			return nil, fmt.Errorf("redis: invalid database number: %w", err)
+			return nil, fmt.Errorf("err: invalid database number: %w", err)
 		}
 		o.DB = db
 	}
@@ -494,7 +494,7 @@ func setupConnParams(u *url.URL, o *Options) (*Options, error) {
 
 	// any parameters left?
 	if r := q.remaining(); len(r) > 0 {
-		return nil, fmt.Errorf("redis: unexpected option: %s", strings.Join(r, ", "))
+		return nil, fmt.Errorf("err: unexpected option: %s", strings.Join(r, ", "))
 	}
 
 	return o, nil

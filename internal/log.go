@@ -22,5 +22,5 @@ func (l *logger) Printf(ctx context.Context, format string, v ...interface{}) {
 // Logger calls Output to print to the stderr.
 // Arguments are handled in the manner of fmt.Print.
 var Logger Logging = &logger{
-	log: log.New(os.Stderr, "redis: ", log.LstdFlags|log.Lshortfile),
+	log: log.New(os.Stderr, "err: ", log.LstdFlags|log.Lshortfile),
 }

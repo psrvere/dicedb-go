@@ -54,7 +54,7 @@ func (c cmdable) BitCount(ctx context.Context, key string, bitCount *BitCount) *
 		if bitCount.Unit != "" {
 			if bitCount.Unit != BitCountIndexByte && bitCount.Unit != BitCountIndexBit {
 				cmd := NewIntCmd(ctx)
-				cmd.SetErr(errors.New("redis: invalid bitcount index"))
+				cmd.SetErr(errors.New("err: invalid bitcount index"))
 				return cmd
 			}
 			args = append(args, bitCount.Unit)

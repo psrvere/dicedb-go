@@ -67,7 +67,7 @@ func (c *Pipeline) Len() int {
 func (c *Pipeline) Do(ctx context.Context, args ...interface{}) *Cmd {
 	cmd := NewCmd(ctx, args...)
 	if len(args) == 0 {
-		cmd.SetErr(errors.New("redis: please enter the command to be executed"))
+		cmd.SetErr(errors.New("err: please enter the command to be executed"))
 		return cmd
 	}
 	_ = c.Process(ctx, cmd)

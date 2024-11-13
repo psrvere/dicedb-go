@@ -122,7 +122,7 @@ var _ = Describe("Client", func() {
 	It("should close", func() {
 		Expect(client.Close()).NotTo(HaveOccurred())
 		err := client.Ping(ctx).Err()
-		Expect(err).To(MatchError("redis: client is closed"))
+		Expect(err).To(MatchError("err: client is closed"))
 	})
 
 	It("should close pubsub without closing the client", func() {
@@ -130,7 +130,7 @@ var _ = Describe("Client", func() {
 		Expect(pubsub.Close()).NotTo(HaveOccurred())
 
 		_, err := pubsub.Receive(ctx)
-		Expect(err).To(MatchError("redis: client is closed"))
+		Expect(err).To(MatchError("err: client is closed"))
 		Expect(client.Ping(ctx).Err()).NotTo(HaveOccurred())
 	})
 
@@ -152,7 +152,7 @@ var _ = Describe("Client", func() {
 		Expect(client.Close()).NotTo(HaveOccurred())
 
 		_, err := pubsub.Receive(ctx)
-		Expect(err).To(MatchError("redis: client is closed"))
+		Expect(err).To(MatchError("err: client is closed"))
 
 		Expect(pubsub.Close()).NotTo(HaveOccurred())
 	})

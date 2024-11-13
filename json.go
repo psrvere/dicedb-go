@@ -112,7 +112,7 @@ func (cmd *JSONCmd) Expanded() (interface{}, error) {
 }
 
 func (cmd *JSONCmd) readReply(rd *proto.Reader) error {
-	// nil response from JSON.(M)GET (cmd.baseCmd.err will be "redis: nil")
+	// nil response from JSON.(M)GET (cmd.baseCmd.err will be "err: nil")
 	if cmd.baseCmd.Err() == Nil {
 		cmd.val = ""
 		return Nil
@@ -550,7 +550,7 @@ func (c cmdable) JSONSetMode(ctx context.Context, key, path string, value interf
 			args = append(args, strings.ToUpper(mode))
 
 		default:
-			panic("redis: JSON.SET mode must be NX or XX")
+			panic("err: JSON.SET mode must be NX or XX")
 		}
 	}
 	cmd := NewStatusCmd(ctx, args...)

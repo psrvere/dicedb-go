@@ -129,5 +129,5 @@ func ExampleClient_hget() {
 	// Output:
 	// 1
 	// foo
-	// redis: nil
+	// err: nil
 }

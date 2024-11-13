@@ -513,7 +513,7 @@ var _ = Describe("empty Redis Ring", func() {
 
 	It("returns an error", func() {
 		err := ring.Ping(ctx).Err()
-		Expect(err).To(MatchError("redis: all ring shards are down"))
+		Expect(err).To(MatchError("err: all ring shards are down"))
 	})
 
 	It("pipeline returns an error", func() {
@@ -521,7 +521,7 @@ var _ = Describe("empty Redis Ring", func() {
 			pipe.Ping(ctx)
 			return nil
 		})
-		Expect(err).To(MatchError("redis: all ring shards are down"))
+		Expect(err).To(MatchError("err: all ring shards are down"))
 	})
 })
 

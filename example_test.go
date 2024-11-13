@@ -606,7 +606,7 @@ func ExampleClient_TxPipeline() {
 //	n, err = IncrByXX.Run(ctx, rdb, []string{"xx_counter"}, 2).Result()
 //	fmt.Println(n, err)
 //
-//	// Output: <nil> redis: nil
+//	// Output: <nil> err: nil
 //	// 42 <nil>
 //}
 
@@ -619,13 +619,13 @@ func Example_customCommand() {
 
 	v, err := Get(ctx, rdb, "key_does_not_exist").Result()
 	fmt.Printf("%q %s", v, err)
-	// Output: "" redis: nil
+	// Output: "" err: nil
 }
 
 func Example_customCommand2() {
 	v, err := rdb.Do(ctx, "get", "key_does_not_exist").Text()
 	fmt.Printf("%q %s", v, err)
-	// Output: "" redis: nil
+	// Output: "" err: nil
 }
 
 //func ExampleScanIterator() {

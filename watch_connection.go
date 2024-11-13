@@ -224,12 +224,12 @@ func (w *WatchConn) newWMessage(reply interface{}) (interface{}, error) {
 		return &Pong{Payload: reply}, nil
 	case []interface{}:
 		if len(reply) == 0 {
-			return nil, fmt.Errorf("redis: empty watchcommand message")
+			return nil, fmt.Errorf("err: empty watchcommand message")
 		}
 
 		kind, ok := reply[0].(string)
 		if !ok {
-			return nil, fmt.Errorf("redis: expected message type as string, got %T", reply[0])
+			return nil, fmt.Errorf("err: expected message type as string, got %T", reply[0])
 		}
 
 		if kind == "pong" {
@@ -238,26 +238,26 @@ func (w *WatchConn) newWMessage(reply interface{}) (interface{}, error) {
 			return w.processWatchResult(reply)
 		}
 	default:
-		return nil, fmt.Errorf("redis: unsupported watchcommand message type: %T", reply)
+		return nil, fmt.Errorf("err: unsupported watchcommand message type: %T", reply)
 	}
 }
 
 // processWatchResult parses a WATCHCOMMAND message from the server.
 func (w *WatchConn) processWatchResult(payload []interface{}) (*WatchResult, error) {
 	if len(payload) < 3 {
-		return nil, fmt.Errorf("redis: invalid watchcommand message format")
+		return nil, fmt.Errorf("err: invalid watchcommand message format")
 	}
 
 	// Ensure command is a string
 	command, ok := payload[0].(string)
 	if !ok {
-		return nil, fmt.Errorf("redis: invalid command in watchcommand message, expected string, got %T", payload[0])
+		return nil, fmt.Errorf("err: invalid command in watchcommand message, expected string, got %T", payload[0])
 	}
 
 	// Ensure name is a string
 	fingerprint, ok := payload[1].(string)
 	if !ok {
-		return nil, fmt.Errorf("redis: invalid fingerprint in watchcommand message, expected string, got %T", payload[1])
+		return nil, fmt.Errorf("err: invalid fingerprint in watchcommand message, expected string, got %T", payload[1])
 	}
 
 	data := payload[2]
@@ -270,12 +270,12 @@ func (w *WatchConn) processWatchResult(payload []interface{}) (*WatchResult, err
 		}
 		typedData, ok = data.(string)
 		if !ok {
-			return nil, fmt.Errorf("redis: invalid data in GET.WATCH message, expected string, got %T", payload[2])
+			return nil, fmt.Errorf("err: invalid data in GET.WATCH message, expected string, got %T", payload[2])
 		}
 	case "ZRANGE.WATCH", "ZRANGE":
 		typedData, ok = parseZRangeResult(data)
 		if !ok {
-			return nil, fmt.Errorf("redis: invalid data in ZRANGE.WATCH message, expected []Z, got %T", payload[2])
+			return nil, fmt.Errorf("err: invalid data in ZRANGE.WATCH message, expected []Z, got %T", payload[2])
 		}
 	default:
 		typedData = data
@@ -357,7 +357,7 @@ func (w *WatchConn) ReceiveWMessage(ctx context.Context) (*WatchResult, error) {
 		case *WatchResult:
 			return msg, nil
 		default:
-			return nil, fmt.Errorf("redis: unknown message type: %T", msg)
+			return nil, fmt.Errorf("err: unknown message type: %T", msg)
 		}
 	}
 }
@@ -382,7 +382,7 @@ func (w *WatchConn) Channel(opts ...WChannelOption) <-chan *WatchResult {
 		w.msgCh.initMsgChan()
 	})
 	if w.msgCh == nil {
-		err := fmt.Errorf("redis: Channel can't be called after ChannelWithSubscriptions")
+		err := fmt.Errorf("err: Channel can't be called after ChannelWithSubscriptions")
 		panic(err)
 	}
 	return w.msgCh.msgCh
@@ -542,11 +542,11 @@ func (c *wChannel) initMsgChan() {
 					}
 				case <-timer.C:
 					internal.Logger.Printf(
-						ctx, "redis: %s channel is full for %s (message is dropped)",
+						ctx, "err: %s channel is full for %s (message is dropped)",
 						c.watchCmd, c.chanSendTimeout)
 				}
 			default:
-				internal.Logger.Printf(ctx, "redis: unknown message type: %T", msg)
+				internal.Logger.Printf(ctx, "err: unknown message type: %T", msg)
 			}
 		}
 	}()

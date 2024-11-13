@@ -213,12 +213,12 @@ func (q *QWatch) newQMessage(reply interface{}) (interface{}, error) {
 		return &Pong{Payload: reply}, nil
 	case []interface{}:
 		if len(reply) == 0 {
-			return nil, fmt.Errorf("redis: empty qwatch message")
+			return nil, fmt.Errorf("err: empty qwatch message")
 		}
 
 		kind, ok := reply[0].(string)
 		if !ok {
-			return nil, fmt.Errorf("redis: expected message type as string, got %T", reply[0])
+			return nil, fmt.Errorf("err: expected message type as string, got %T", reply[0])
 		}
 
 		switch kind {
@@ -227,22 +227,22 @@ func (q *QWatch) newQMessage(reply interface{}) (interface{}, error) {
 		case "pong":
 			return parsePongMessage(reply)
 		default:
-			return nil, fmt.Errorf("redis: unsupported qwatch message: %q", kind)
+			return nil, fmt.Errorf("err: unsupported qwatch message: %q", kind)
 		}
 	default:
-		return nil, fmt.Errorf("redis: unsupported qwatch message type: %T", reply)
+		return nil, fmt.Errorf("err: unsupported qwatch message type: %T", reply)
 	}
 }
 
 // parsePongMessage parses a PONG message from the server.
 func parsePongMessage(reply []interface{}) (*Pong, error) {
 	if len(reply) < 2 {
-		return nil, fmt.Errorf("redis: invalid pong message format")
+		return nil, fmt.Errorf("err: invalid pong message format")
 	}
 
 	payload, ok := reply[1].(string)
 	if !ok {
-		return nil, fmt.Errorf("redis: invalid pong payload type")
+		return nil, fmt.Errorf("err: invalid pong payload type")
 	}
 
 	return &Pong{Payload: payload}, nil
@@ -251,19 +251,19 @@ func parsePongMessage(reply []interface{}) (*Pong, error) {
 // processQWatchMessage parses a QWATCH message from the server.
 func (q *QWatch) processQWatchMessage(payload []interface{}) (*QMessage, error) {
 	if len(payload) < 3 {
-		return nil, fmt.Errorf("redis: invalid qwatch message format")
+		return nil, fmt.Errorf("err: invalid qwatch message format")
 	}
 
 	// Ensure command is a string
 	command, ok := payload[0].(string)
 	if !ok {
-		return nil, fmt.Errorf("redis: invalid command in q.watch message, expected string, got %T", payload[0])
+		return nil, fmt.Errorf("err: invalid command in q.watch message, expected string, got %T", payload[0])
 	}
 
 	// Ensure query is a string
 	query, ok := payload[1].(string)
 	if !ok {
-		return nil, fmt.Errorf("redis: invalid query in q.watch message, expected string, got %T", payload[1])
+		return nil, fmt.Errorf("err: invalid query in q.watch message, expected string, got %T", payload[1])
 	}
 
 	updates, err := parseUpdates(payload[2])
@@ -278,7 +278,7 @@ func (q *QWatch) processQWatchMessage(payload []interface{}) (*QMessage, error) 
 func parseUpdates(data interface{}) ([]KV, error) {
 	updateList, ok := data.([]interface{})
 	if !ok {
-		return nil, fmt.Errorf("redis: invalid update list format, expected []interface{}, got %T", data)
+		return nil, fmt.Errorf("err: invalid update list format, expected []interface{}, got %T", data)
 	}
 
 	updates := make([]KV, 0, len(updateList))
@@ -297,13 +297,13 @@ func parseUpdates(data interface{}) ([]KV, error) {
 func parseKeyValuePair(update interface{}) (KV, error) {
 	pair, ok := update.([]interface{})
 	if !ok || len(pair) != 2 {
-		return KV{}, fmt.Errorf("redis: invalid key-value pair format")
+		return KV{}, fmt.Errorf("err: invalid key-value pair format")
 	}
 
 	// Ensure key is a string
 	key, ok := pair[0].(string)
 	if !ok {
-		return KV{}, fmt.Errorf("redis: invalid key type")
+		return KV{}, fmt.Errorf("err: invalid key type")
 	}
 
 	// Value can be any type
@@ -359,7 +359,7 @@ func (q *QWatch) ReceiveQMessage(ctx context.Context) (*QMessage, error) {
 		case *QMessage:
 			return msg, nil
 		default:
-			return nil, fmt.Errorf("redis: unknown message type: %T", msg)
+			return nil, fmt.Errorf("err: unknown message type: %T", msg)
 		}
 	}
 }
@@ -384,7 +384,7 @@ func (q *QWatch) Channel(opts ...QChannelOption) <-chan *QMessage {
 		q.msgCh.initMsgChan()
 	})
 	if q.msgCh == nil {
-		err := fmt.Errorf("redis: Channel can't be called after ChannelWithSubscriptions")
+		err := fmt.Errorf("err: Channel can't be called after ChannelWithSubscriptions")
 		panic(err)
 	}
 	return q.msgCh.msgCh
@@ -544,11 +544,11 @@ func (c *qChannel) initMsgChan() {
 					}
 				case <-timer.C:
 					internal.Logger.Printf(
-						ctx, "redis: %s channel is full for %s (message is dropped)",
+						ctx, "err: %s channel is full for %s (message is dropped)",
 						c.qwatch, c.chanSendTimeout)
 				}
 			default:
-				internal.Logger.Printf(ctx, "redis: unknown message type: %T", msg)
+				internal.Logger.Printf(ctx, "err: unknown message type: %T", msg)
 			}
 		}
 	}()

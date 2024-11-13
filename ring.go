@@ -20,7 +20,7 @@ import (
 	"github.com/dicedb/dicedb-go/internal/rand"
 )
 
-var errRingShardsDown = errors.New("redis: all ring shards are down")
+var errRingShardsDown = errors.New("err: all ring shards are down")
 
 //------------------------------------------------------------------------------
 
@@ -786,7 +786,7 @@ func (c *Ring) generalProcessPipeline(
 
 func (c *Ring) Watch(ctx context.Context, fn func(*Tx) error, keys ...string) error {
 	if len(keys) == 0 {
-		return fmt.Errorf("redis: Watch requires at least one key")
+		return fmt.Errorf("err: Watch requires at least one key")
 	}
 
 	var shards []*ringShard
@@ -803,13 +803,13 @@ func (c *Ring) Watch(ctx context.Context, fn func(*Tx) error, keys ...string) er
 	}
 
 	if len(shards) == 0 {
-		return fmt.Errorf("redis: Watch requires at least one shard")
+		return fmt.Errorf("err: Watch requires at least one shard")
 	}
 
 	if len(shards) > 1 {
 		for _, shard := range shards[1:] {
 			if shard.Client != shards[0].Client {
-				err := fmt.Errorf("redis: Watch requires all keys to be in the same shard")
+				err := fmt.Errorf("err: Watch requires all keys to be in the same shard")
 				return err
 			}
 		}

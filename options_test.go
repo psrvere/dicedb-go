@@ -76,40 +76,40 @@ func TestParseURL(t *testing.T) {
 		}, {
 			// invalid db format
 			url: "unix://foo:bar@/tmp/redis.sock?db=test",
-			err: errors.New(`redis: invalid database number: strconv.Atoi: parsing "test": invalid syntax`),
+			err: errors.New(`err: invalid database number: strconv.Atoi: parsing "test": invalid syntax`),
 		}, {
 			// invalid int value
 			url: "redis://localhost/?pool_size=five",
-			err: errors.New(`redis: invalid pool_size number: strconv.Atoi: parsing "five": invalid syntax`),
+			err: errors.New(`err: invalid pool_size number: strconv.Atoi: parsing "five": invalid syntax`),
 		}, {
 			// invalid bool value
 			url: "redis://localhost/?pool_fifo=yes",
-			err: errors.New(`redis: invalid pool_fifo boolean: expected true/false/1/0 or an empty string, got "yes"`),
+			err: errors.New(`err: invalid pool_fifo boolean: expected true/false/1/0 or an empty string, got "yes"`),
 		}, {
 			// it returns first error
 			url: "redis://localhost/?db=foo&pool_size=five",
-			err: errors.New(`redis: invalid database number: strconv.Atoi: parsing "foo": invalid syntax`),
+			err: errors.New(`err: invalid database number: strconv.Atoi: parsing "foo": invalid syntax`),
 		}, {
 			url: "redis://localhost/?abc=123",
-			err: errors.New("redis: unexpected option: abc"),
+			err: errors.New("err: unexpected option: abc"),
 		}, {
 			url: "redis://foo@localhost/?username=bar",
-			err: errors.New("redis: unexpected option: username"),
+			err: errors.New("err: unexpected option: username"),
 		}, {
 			url: "redis://localhost/?wrte_timout=10s&abc=123",
-			err: errors.New("redis: unexpected option: abc, wrte_timout"),
+			err: errors.New("err: unexpected option: abc, wrte_timout"),
 		}, {
 			url: "http://google.com",
-			err: errors.New("redis: invalid URL scheme: http"),
+			err: errors.New("err: invalid URL scheme: http"),
 		}, {
 			url: "redis://localhost/1/2/3/4",
-			err: errors.New("redis: invalid URL path: /1/2/3/4"),
+			err: errors.New("err: invalid URL path: /1/2/3/4"),
 		}, {
 			url: "12345",
-			err: errors.New("redis: invalid URL scheme: "),
+			err: errors.New("err: invalid URL scheme: "),
 		}, {
 			url: "redis://localhost/iamadatabase",
-			err: errors.New(`redis: invalid database number: "iamadatabase"`),
+			err: errors.New(`err: invalid database number: "iamadatabase"`),
 		},
 	}
 

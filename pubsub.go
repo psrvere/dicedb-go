@@ -165,7 +165,7 @@ func (c *PubSub) closeTheCn(reason error) error {
 		return nil
 	}
 	if !c.closed {
-		internal.Logger.Printf(c.getContext(), "redis: discarding bad PubSub connection: %s", reason)
+		internal.Logger.Printf(c.getContext(), "err: discarding bad PubSub connection: %s", reason)
 	}
 	err := c.closeConn(c.cn)
 	c.cn = nil
@@ -397,7 +397,7 @@ func (c *PubSub) newMessage(reply interface{}) (interface{}, error) {
 					PayloadSlice: ss,
 				}, nil
 			default:
-				return nil, fmt.Errorf("redis: unsupported pubsub message payload: %T", payload)
+				return nil, fmt.Errorf("err: unsupported pubsub message payload: %T", payload)
 			}
 		case "pmessage":
 			return &Message{
@@ -410,10 +410,10 @@ func (c *PubSub) newMessage(reply interface{}) (interface{}, error) {
 				Payload: reply[1].(string),
 			}, nil
 		default:
-			return nil, fmt.Errorf("redis: unsupported pubsub message: %q", kind)
+			return nil, fmt.Errorf("err: unsupported pubsub message: %q", kind)
 		}
 	default:
-		return nil, fmt.Errorf("redis: unsupported pubsub message: %#v", reply)
+		return nil, fmt.Errorf("err: unsupported pubsub message: %#v", reply)
 	}
 }
 
@@ -470,7 +470,7 @@ func (c *PubSub) ReceiveMessage(ctx context.Context) (*Message, error) {
 		case *Message:
 			return msg, nil
 		default:
-			err := fmt.Errorf("redis: unknown message: %T", msg)
+			err := fmt.Errorf("err: unknown message: %T", msg)
 			return nil, err
 		}
 	}
@@ -498,7 +498,7 @@ func (c *PubSub) Channel(opts ...ChannelOption) <-chan *Message {
 		c.msgCh.initMsgChan()
 	})
 	if c.msgCh == nil {
-		err := fmt.Errorf("redis: Channel can't be called after ChannelWithSubscriptions")
+		err := fmt.Errorf("err: Channel can't be called after ChannelWithSubscriptions")
 		panic(err)
 	}
 	return c.msgCh.msgCh
@@ -523,7 +523,7 @@ func (c *PubSub) ChannelWithSubscriptions(opts ...ChannelOption) <-chan interfac
 		c.allCh.initAllChan()
 	})
 	if c.allCh == nil {
-		err := fmt.Errorf("redis: ChannelWithSubscriptions can't be called after Channel")
+		err := fmt.Errorf("err: ChannelWithSubscriptions can't be called after Channel")
 		panic(err)
 	}
 	return c.allCh.allCh
@@ -664,11 +664,11 @@ func (c *channel) initMsgChan() {
 					}
 				case <-timer.C:
 					internal.Logger.Printf(
-						ctx, "redis: %s channel is full for %s (message is dropped)",
+						ctx, "err: %s channel is full for %s (message is dropped)",
 						c, c.chanSendTimeout)
 				}
 			default:
-				internal.Logger.Printf(ctx, "redis: unknown message type: %T", msg)
+				internal.Logger.Printf(ctx, "err: unknown message type: %T", msg)
 			}
 		}
 	}()
@@ -718,11 +718,11 @@ func (c *channel) initAllChan() {
 					}
 				case <-timer.C:
 					internal.Logger.Printf(
-						ctx, "redis: %s channel is full for %s (message is dropped)",
+						ctx, "err: %s channel is full for %s (message is dropped)",
 						c, c.chanSendTimeout)
 				}
 			default:
-				internal.Logger.Printf(ctx, "redis: unknown message type: %T", msg)
+				internal.Logger.Printf(ctx, "err: unknown message type: %T", msg)
 			}
 		}
 	}()

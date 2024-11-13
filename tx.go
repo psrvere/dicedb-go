@@ -8,7 +8,7 @@ import (
 )
 
 // TxFailedErr transaction redis failed.
-const TxFailedErr = proto.RedisError("redis: transaction failed")
+const TxFailedErr = proto.RedisError("err: transaction failed")
 
 // Tx implements Redis transactions as described in
 // http://redis.io/topics/transactions. It's NOT safe for concurrent use

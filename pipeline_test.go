@@ -90,7 +90,7 @@ var _ = Describe("pipelining", func() {
 
 		It("should Exec, not Do", func() {
 			err := pipe.Do(ctx).Err()
-			Expect(err).To(Equal(errors.New("redis: please enter the command to be executed")))
+			Expect(err).To(Equal(errors.New("err: please enter the command to be executed")))
 		})
 	}
 
