@@ -565,6 +565,10 @@ func (c *wChannel) initMsgChan() {
 				label, err := uuid.Parse(msg.Command)
 				if err == nil {
 					firstMsgCh := c.watchLabelFirstMsgChMap[label.String()]
+					if firstMsgCh == nil {
+						internal.Logger.Printf(ctx, "redis: first message channel not found for %s", label.String())
+						continue
+					}
 					select {
 					case firstMsgCh <- msg:
 						if !timer.Stop() {
