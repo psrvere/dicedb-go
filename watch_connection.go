@@ -290,10 +290,7 @@ func (w *WatchConn) processWatchResult(payload []interface{}) (*WatchResult, err
 		if data == nil {
 			return &WatchResult{Command: command, Fingerprint: fingerprint, Data: nil}, nil
 		}
-		typedData, ok = data.(string)
-		if !ok {
-			return nil, fmt.Errorf("err: invalid data in GET.WATCH message, expected string, got %T", payload[2])
-		}
+		typedData = data
 	case "ZRANGE.WATCH", "ZRANGE":
 		typedData, ok = parseZRangeResult(data)
 		if !ok {
