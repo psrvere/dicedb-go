@@ -364,7 +364,7 @@ func ExampleClient_llen() {
 //	res26, err := rdb.RPop(ctx, "bikes:repairs").Result()
 //
 //	if err != nil {
-//		fmt.Println(err) // >>> redis: nil
+//		fmt.Println(err) // >>> err: nil
 //	}
 //
 //	fmt.Println(res26) // >>> <empty string>
@@ -376,7 +376,7 @@ func ExampleClient_llen() {
 //	// bike:3
 //	// bike:1
 //	// bike:2
-//	// redis: nil
+//	// err: nil
 //	//
 //}
 
@@ -511,7 +511,7 @@ func ExampleClient_llen() {
 //	res36, err := rdb.BRPop(ctx, 1, "bikes:repairs").Result()
 //
 //	if err != nil {
-//		fmt.Println(err) // >>> redis: nil
+//		fmt.Println(err) // >>> err: nil
 //	}
 //
 //	fmt.Println(res36) // >>> []
@@ -521,7 +521,7 @@ func ExampleClient_llen() {
 //	// 2
 //	// [bikes:repairs bike:2]
 //	// [bikes:repairs bike:1]
-//	// redis: nil
+//	// err: nil
 //	// []
 //}
 
@@ -713,7 +713,7 @@ func ExampleClient_llen() {
 //	res50, err := rdb.LPop(ctx, "bikes:repairs").Result()
 //
 //	if err != nil {
-//		fmt.Println(err) // >>> redis: nil
+//		fmt.Println(err) // >>> err: nil
 //	}
 //
 //	fmt.Println(res50) // >>> <empty string>
@@ -722,7 +722,7 @@ func ExampleClient_llen() {
 //	// Output:
 //	// 0
 //	// 0
-//	// redis: nil
+//	// err: nil
 //	//
 //}
 //

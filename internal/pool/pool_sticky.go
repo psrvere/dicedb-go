@@ -20,7 +20,7 @@ type BadConnError struct {
 var _ error = (*BadConnError)(nil)
 
 func (e BadConnError) Error() string {
-	s := "redis: Conn is in a bad state"
+	s := "err: Conn is in a bad state"
 	if e.wrapped != nil {
 		s += ": " + e.wrapped.Error()
 	}
@@ -93,7 +93,7 @@ func (p *StickyConnPool) Get(ctx context.Context) (*Conn, error) {
 			panic("not reached")
 		}
 	}
-	return nil, fmt.Errorf("redis: StickyConnPool.Get: infinite loop")
+	return nil, fmt.Errorf("err: StickyConnPool.Get: infinite loop")
 }
 
 func (p *StickyConnPool) Put(ctx context.Context, cn *Conn) {
@@ -143,7 +143,7 @@ func (p *StickyConnPool) Close() error {
 		}
 	}
 
-	return errors.New("redis: StickyConnPool.Close: infinite loop")
+	return errors.New("err: StickyConnPool.Close: infinite loop")
 }
 
 func (p *StickyConnPool) Reset(ctx context.Context) error {
@@ -159,12 +159,12 @@ func (p *StickyConnPool) Reset(ctx context.Context) error {
 		p.pool.Remove(ctx, cn, ErrClosed)
 		p._badConnError.Store(BadConnError{wrapped: nil})
 	default:
-		return errors.New("redis: StickyConnPool does not have a Conn")
+		return errors.New("err: StickyConnPool does not have a Conn")
 	}
 
 	if !atomic.CompareAndSwapUint32(&p.state, stateInited, stateDefault) {
 		state := atomic.LoadUint32(&p.state)
-		return fmt.Errorf("redis: invalid StickyConnPool state: %d", state)
+		return fmt.Errorf("err: invalid StickyConnPool state: %d", state)
 	}
 
 	return nil

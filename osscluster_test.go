@@ -1316,7 +1316,7 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //
 //	It("Ping returns an error", func() {
 //		err := client.Ping(ctx).Err()
-//		Expect(err).To(MatchError("redis: cluster has no nodes"))
+//		Expect(err).To(MatchError("err: cluster has no nodes"))
 //	})
 //
 //	It("pipeline returns an error", func() {
@@ -1324,7 +1324,7 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //			pipe.Ping(ctx)
 //			return nil
 //		})
-//		Expect(err).To(MatchError("redis: cluster has no nodes"))
+//		Expect(err).To(MatchError("err: cluster has no nodes"))
 //	})
 //})
 //
@@ -1554,23 +1554,23 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //		}, {
 //			test: "InvalidQueryAddr",
 //			url:  "rediss://foo:bar@localhost:123?addr=rediss://foo:barr@localhost:1234",
-//			err:  errors.New(`redis: unable to parse addr param: rediss://foo:barr@localhost:1234`),
+//			err:  errors.New(`err: unable to parse addr param: rediss://foo:barr@localhost:1234`),
 //		}, {
 //			test: "InvalidInt",
 //			url:  "redis://localhost?pool_size=five",
-//			err:  errors.New(`redis: invalid pool_size number: strconv.Atoi: parsing "five": invalid syntax`),
+//			err:  errors.New(`err: invalid pool_size number: strconv.Atoi: parsing "five": invalid syntax`),
 //		}, {
 //			test: "InvalidBool",
 //			url:  "redis://localhost?pool_fifo=yes",
-//			err:  errors.New(`redis: invalid pool_fifo boolean: expected true/false/1/0 or an empty string, got "yes"`),
+//			err:  errors.New(`err: invalid pool_fifo boolean: expected true/false/1/0 or an empty string, got "yes"`),
 //		}, {
 //			test: "UnknownParam",
 //			url:  "redis://localhost?abc=123",
-//			err:  errors.New("redis: unexpected option: abc"),
+//			err:  errors.New("err: unexpected option: abc"),
 //		}, {
 //			test: "InvalidScheme",
 //			url:  "https://google.com",
-//			err:  errors.New("redis: invalid URL scheme: https"),
+//			err:  errors.New("err: invalid URL scheme: https"),
 //		},
 //	}
 //

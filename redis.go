@@ -624,7 +624,7 @@ func txPipelineReadQueued(rd *proto.Reader, statusCmd *StatusCmd, cmds []Cmder) 
 	}
 
 	if line[0] != proto.RespArray {
-		return fmt.Errorf("redis: expected '*', but got line %q", line)
+		return fmt.Errorf("err: expected '*', but got line %q", line)
 	}
 
 	return nil

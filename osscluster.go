@@ -21,7 +21,7 @@ import (
 	"github.com/dicedb/dicedb-go/internal/rand"
 )
 
-var errClusterNoNodes = fmt.Errorf("redis: cluster has no nodes")
+var errClusterNoNodes = fmt.Errorf("err: cluster has no nodes")
 
 // ClusterOptions are used to configure a cluster client and should be
 // passed to NewClusterClient.
@@ -207,7 +207,7 @@ func setupClusterConn(u *url.URL, host string, o *ClusterOptions) (*ClusterOptio
 	case "redis":
 		o.Username, o.Password = getUserPassword(u)
 	default:
-		return nil, fmt.Errorf("redis: invalid URL scheme: %s", u.Scheme)
+		return nil, fmt.Errorf("err: invalid URL scheme: %s", u.Scheme)
 	}
 
 	// retrieve the configuration from the query parameters
@@ -253,7 +253,7 @@ func setupClusterQueryParams(u *url.URL, o *ClusterOptions) (*ClusterOptions, er
 	for _, addr := range addrs {
 		h, p, err := net.SplitHostPort(addr)
 		if err != nil || h == "" || p == "" {
-			return nil, fmt.Errorf("redis: unable to parse addr param: %s", addr)
+			return nil, fmt.Errorf("err: unable to parse addr param: %s", addr)
 		}
 
 		o.Addrs = append(o.Addrs, net.JoinHostPort(h, p))
@@ -261,7 +261,7 @@ func setupClusterQueryParams(u *url.URL, o *ClusterOptions) (*ClusterOptions, er
 
 	// any parameters left?
 	if r := q.remaining(); len(r) > 0 {
-		return nil, fmt.Errorf("redis: unexpected option: %s", strings.Join(r, ", "))
+		return nil, fmt.Errorf("err: unexpected option: %s", strings.Join(r, ", "))
 	}
 
 	return o, nil
@@ -765,12 +765,12 @@ func (c *clusterState) slotClosestNode(slot int) (*clusterNode, error) {
 
 	// if all nodes are failing, we will pick the temporarily failing node with lowest latency
 	if minLatency < maximumNodeLatency && closestNode != nil {
-		internal.Logger.Printf(context.TODO(), "redis: all nodes are marked as failed, picking the temporarily failing node with lowest latency")
+		internal.Logger.Printf(context.TODO(), "err: all nodes are marked as failed, picking the temporarily failing node with lowest latency")
 		return closestNode, nil
 	}
 
 	// If all nodes are having the maximum latency(all pings are failing) - return a random node across the cluster
-	internal.Logger.Printf(context.TODO(), "redis: pings to all nodes are failing, picking a random node across the cluster")
+	internal.Logger.Printf(context.TODO(), "err: pings to all nodes are failing, picking a random node across the cluster")
 	return c.nodes.Random()
 }
 
@@ -1586,7 +1586,7 @@ func (c *ClusterClient) txPipelineReadQueued(
 	}
 
 	if line[0] != proto.RespArray {
-		return fmt.Errorf("redis: expected '*', but got line %q", line)
+		return fmt.Errorf("err: expected '*', but got line %q", line)
 	}
 
 	return nil
@@ -1623,13 +1623,13 @@ func (c *ClusterClient) cmdsMoved(
 
 func (c *ClusterClient) Watch(ctx context.Context, fn func(*Tx) error, keys ...string) error {
 	if len(keys) == 0 {
-		return fmt.Errorf("redis: Watch requires at least one key")
+		return fmt.Errorf("err: Watch requires at least one key")
 	}
 
 	slot := hashtag.Slot(keys[0])
 	for _, key := range keys[1:] {
 		if hashtag.Slot(key) != slot {
-			err := fmt.Errorf("redis: Watch requires all keys to be in the same slot")
+			err := fmt.Errorf("err: Watch requires all keys to be in the same slot")
 			return err
 		}
 	}

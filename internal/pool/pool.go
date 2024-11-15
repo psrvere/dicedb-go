@@ -13,14 +13,14 @@ import (
 
 var (
 	// ErrClosed performs any operation on the closed client will return this error.
-	ErrClosed = errors.New("redis: client is closed")
+	ErrClosed = errors.New("err: client is closed")
 
 	// ErrPoolExhausted is returned from a pool connection method
 	// when the maximum number of database connections in the pool has been reached.
-	ErrPoolExhausted = errors.New("redis: connection pool exhausted")
+	ErrPoolExhausted = errors.New("err: connection pool exhausted")
 
 	// ErrPoolTimeout timed out waiting to get a connection from the connection pool.
-	ErrPoolTimeout = errors.New("redis: connection pool timeout")
+	ErrPoolTimeout = errors.New("err: connection pool timeout")
 )
 
 var timers = sync.Pool{

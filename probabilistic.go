@@ -344,7 +344,7 @@ func (cmd *BFInfoCmd) readReply(rd *proto.Reader) (err error) {
 		case "Expansion rate":
 			result.ExpansionRate, err = rd.ReadInt()
 		default:
-			return fmt.Errorf("redis: BLOOM.INFO unexpected key %s", key)
+			return fmt.Errorf("err: BLOOM.INFO unexpected key %s", key)
 		}
 
 		if err != nil {
@@ -648,7 +648,7 @@ func (cmd *CFInfoCmd) readReply(rd *proto.Reader) (err error) {
 			result.MaxIteration, err = rd.ReadInt()
 
 		default:
-			return fmt.Errorf("redis: CF.INFO unexpected key %s", key)
+			return fmt.Errorf("err: CF.INFO unexpected key %s", key)
 		}
 
 		if err != nil {
@@ -799,7 +799,7 @@ func (cmd *CMSInfoCmd) readReply(rd *proto.Reader) (err error) {
 		case "count":
 			result.Count, err = rd.ReadInt()
 		default:
-			return fmt.Errorf("redis: CMS.INFO unexpected key %s", key)
+			return fmt.Errorf("err: CMS.INFO unexpected key %s", key)
 		}
 
 		if err != nil {
@@ -994,7 +994,7 @@ func (cmd *TopKInfoCmd) readReply(rd *proto.Reader) (err error) {
 		case "decay":
 			result.Decay, err = rd.ReadFloat()
 		default:
-			return fmt.Errorf("redis: topk.info unexpected key %s", key)
+			return fmt.Errorf("err: topk.info unexpected key %s", key)
 		}
 
 		if err != nil {
@@ -1267,7 +1267,7 @@ func (cmd *TDigestInfoCmd) readReply(rd *proto.Reader) (err error) {
 		case "Memory usage":
 			result.MemoryUsage, err = rd.ReadInt()
 		default:
-			return fmt.Errorf("redis: tdigest.info unexpected key %s", key)
+			return fmt.Errorf("err: tdigest.info unexpected key %s", key)
 		}
 
 		if err != nil {

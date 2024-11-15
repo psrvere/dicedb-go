@@ -248,7 +248,7 @@ func toString(val interface{}) (string, error) {
 	case string:
 		return val, nil
 	default:
-		err := fmt.Errorf("redis: unexpected type=%T for String", val)
+		err := fmt.Errorf("err: unexpected type=%T for String", val)
 		return "", err
 	}
 }
@@ -263,7 +263,7 @@ func (cmd *Cmd) Int() (int, error) {
 	case string:
 		return strconv.Atoi(val)
 	default:
-		err := fmt.Errorf("redis: unexpected type=%T for Int", val)
+		err := fmt.Errorf("err: unexpected type=%T for Int", val)
 		return 0, err
 	}
 }
@@ -282,7 +282,7 @@ func toInt64(val interface{}) (int64, error) {
 	case string:
 		return strconv.ParseInt(val, 10, 64)
 	default:
-		err := fmt.Errorf("redis: unexpected type=%T for Int64", val)
+		err := fmt.Errorf("err: unexpected type=%T for Int64", val)
 		return 0, err
 	}
 }
@@ -301,7 +301,7 @@ func toUint64(val interface{}) (uint64, error) {
 	case string:
 		return strconv.ParseUint(val, 10, 64)
 	default:
-		err := fmt.Errorf("redis: unexpected type=%T for Uint64", val)
+		err := fmt.Errorf("err: unexpected type=%T for Uint64", val)
 		return 0, err
 	}
 }
@@ -324,7 +324,7 @@ func toFloat32(val interface{}) (float32, error) {
 		}
 		return float32(f), nil
 	default:
-		err := fmt.Errorf("redis: unexpected type=%T for Float32", val)
+		err := fmt.Errorf("err: unexpected type=%T for Float32", val)
 		return 0, err
 	}
 }
@@ -343,7 +343,7 @@ func toFloat64(val interface{}) (float64, error) {
 	case string:
 		return strconv.ParseFloat(val, 64)
 	default:
-		err := fmt.Errorf("redis: unexpected type=%T for Float64", val)
+		err := fmt.Errorf("err: unexpected type=%T for Float64", val)
 		return 0, err
 	}
 }
@@ -364,7 +364,7 @@ func toBool(val interface{}) (bool, error) {
 	case string:
 		return strconv.ParseBool(val)
 	default:
-		err := fmt.Errorf("redis: unexpected type=%T for Bool", val)
+		err := fmt.Errorf("err: unexpected type=%T for Bool", val)
 		return false, err
 	}
 }
@@ -377,7 +377,7 @@ func (cmd *Cmd) Slice() ([]interface{}, error) {
 	case []interface{}:
 		return val, nil
 	default:
-		return nil, fmt.Errorf("redis: unexpected type=%T for Slice", val)
+		return nil, fmt.Errorf("err: unexpected type=%T for Slice", val)
 	}
 }
 
@@ -1876,7 +1876,7 @@ func (cmd *XAutoClaimCmd) readReply(rd *proto.Reader) error {
 		3: // Redis 7:
 		// ok
 	default:
-		return fmt.Errorf("redis: got %d elements in XAutoClaim reply, wanted 2/3", n)
+		return fmt.Errorf("err: got %d elements in XAutoClaim reply, wanted 2/3", n)
 	}
 
 	cmd.start, err = rd.ReadString()
@@ -1946,7 +1946,7 @@ func (cmd *XAutoClaimJustIDCmd) readReply(rd *proto.Reader) error {
 		3: // Redis 7:
 		// ok
 	default:
-		return fmt.Errorf("redis: got %d elements in XAutoClaimJustID reply, wanted 2/3", n)
+		return fmt.Errorf("err: got %d elements in XAutoClaimJustID reply, wanted 2/3", n)
 	}
 
 	cmd.start, err = rd.ReadString()
@@ -2051,7 +2051,7 @@ func (cmd *XInfoConsumersCmd) readReply(rd *proto.Reader) error {
 				inactive, err = rd.ReadInt()
 				cmd.val[i].Inactive = time.Duration(inactive) * time.Millisecond
 			default:
-				return fmt.Errorf("redis: unexpected content %s in XINFO CONSUMERS reply", key)
+				return fmt.Errorf("err: unexpected content %s in XINFO CONSUMERS reply", key)
 			}
 			if err != nil {
 				return err
@@ -2162,7 +2162,7 @@ func (cmd *XInfoGroupsCmd) readReply(rd *proto.Reader) error {
 					return err
 				}
 			default:
-				return fmt.Errorf("redis: unexpected key %q in XINFO GROUPS reply", key)
+				return fmt.Errorf("err: unexpected key %q in XINFO GROUPS reply", key)
 			}
 		}
 	}
@@ -2281,7 +2281,7 @@ func (cmd *XInfoStreamCmd) readReply(rd *proto.Reader) error {
 				return err
 			}
 		default:
-			return fmt.Errorf("redis: unexpected key %q in XINFO STREAM reply", key)
+			return fmt.Errorf("err: unexpected key %q in XINFO STREAM reply", key)
 		}
 	}
 	return nil
@@ -2425,7 +2425,7 @@ func (cmd *XInfoStreamFullCmd) readReply(rd *proto.Reader) error {
 				return err
 			}
 		default:
-			return fmt.Errorf("redis: unexpected key %q in XINFO STREAM FULL reply", key)
+			return fmt.Errorf("err: unexpected key %q in XINFO STREAM FULL reply", key)
 		}
 	}
 	return nil
@@ -2490,7 +2490,7 @@ func readStreamGroups(rd *proto.Reader) ([]XInfoStreamGroup, error) {
 					return nil, err
 				}
 			default:
-				return nil, fmt.Errorf("redis: unexpected key %q in XINFO STREAM FULL reply", key)
+				return nil, fmt.Errorf("err: unexpected key %q in XINFO STREAM FULL reply", key)
 			}
 		}
 
@@ -2615,7 +2615,7 @@ func readXInfoStreamConsumers(rd *proto.Reader) ([]XInfoStreamConsumer, error) {
 					c.Pending = append(c.Pending, p)
 				}
 			default:
-				return nil, fmt.Errorf("redis: unexpected content %s "+
+				return nil, fmt.Errorf("err: unexpected content %s "+
 					"in XINFO STREAM FULL reply", cKey)
 			}
 			if err != nil {
@@ -2892,7 +2892,7 @@ func (cmd *ClusterSlotsCmd) readReply(rd *proto.Reader) error {
 			return err
 		}
 		if n < 2 {
-			return fmt.Errorf("redis: got %d elements in cluster info, expected at least 2", n)
+			return fmt.Errorf("err: got %d elements in cluster info, expected at least 2", n)
 		}
 
 		start, err := rd.ReadInt()
@@ -3441,7 +3441,7 @@ func (cmd *CommandsInfoCmd) readReply(rd *proto.Reader) error {
 		case numArgRedis5, numArgRedis6, numArgRedis7:
 			// ok
 		default:
-			return fmt.Errorf("redis: got %d elements in COMMAND reply, wanted 6/7/10", nn)
+			return fmt.Errorf("err: got %d elements in COMMAND reply, wanted 6/7/10", nn)
 		}
 
 		cmdInfo := &CommandInfo{}
@@ -3623,7 +3623,7 @@ func (cmd *SlowLogCmd) readReply(rd *proto.Reader) error {
 			return err
 		}
 		if nn < 4 {
-			return fmt.Errorf("redis: got %d elements in slowlog get, expected at least 4", nn)
+			return fmt.Errorf("err: got %d elements in slowlog get, expected at least 4", nn)
 		}
 
 		if cmd.val[i].ID, err = rd.ReadInt(); err != nil {
@@ -3647,7 +3647,7 @@ func (cmd *SlowLogCmd) readReply(rd *proto.Reader) error {
 			return err
 		}
 		if cmdLen < 1 {
-			return fmt.Errorf("redis: got %d elements commands reply in slowlog get, expected at least 1", cmdLen)
+			return fmt.Errorf("err: got %d elements commands reply in slowlog get, expected at least 1", cmdLen)
 		}
 
 		cmd.val[i].Args = make([]string, cmdLen)
@@ -4157,7 +4157,7 @@ func (cmd *FunctionListCmd) readReply(rd *proto.Reader) (err error) {
 			case "library_code":
 				library.Code, err = rd.ReadString()
 			default:
-				return fmt.Errorf("redis: function list unexpected key %s", key)
+				return fmt.Errorf("err: function list unexpected key %s", key)
 			}
 
 			if err != nil {
@@ -4214,7 +4214,7 @@ func (cmd *FunctionListCmd) readFunctions(rd *proto.Reader) ([]Function, error) 
 					}
 				}
 			default:
-				return nil, fmt.Errorf("redis: function list unexpected key %s", key)
+				return nil, fmt.Errorf("err: function list unexpected key %s", key)
 			}
 		}
 
@@ -4320,7 +4320,7 @@ func (cmd *FunctionStatsCmd) readReply(rd *proto.Reader) (err error) {
 		case "all_running_scripts": // Redis Enterprise only
 			result.allrs, result.isRunning, err = cmd.readRunningScripts(rd)
 		default:
-			return fmt.Errorf("redis: function stats unexpected key %s", key)
+			return fmt.Errorf("err: function stats unexpected key %s", key)
 		}
 
 		if err != nil {
@@ -4356,7 +4356,7 @@ func (cmd *FunctionStatsCmd) readRunningScript(rd *proto.Reader) (RunningScript,
 		case "command":
 			runningScript.Command, err = cmd.readCommand(rd)
 		default:
-			return RunningScript{}, false, fmt.Errorf("redis: function stats unexpected running_script key %s", key)
+			return RunningScript{}, false, fmt.Errorf("err: function stats unexpected running_script key %s", key)
 		}
 
 		if err != nil {
@@ -4383,7 +4383,7 @@ func (cmd *FunctionStatsCmd) readEngines(rd *proto.Reader) ([]Engine, error) {
 
 		err = rd.ReadFixedMapLen(2)
 		if err != nil {
-			return nil, fmt.Errorf("redis: function stats unexpected %s engine map length", engine.Language)
+			return nil, fmt.Errorf("err: function stats unexpected %s engine map length", engine.Language)
 		}
 
 		for i := 0; i < 2; i++ {
@@ -4779,7 +4779,7 @@ func (cmd *ClusterLinksCmd) readReply(rd *proto.Reader) error {
 			case "send-buffer-used":
 				cmd.val[i].SendBufferUsed, err = rd.ReadInt()
 			default:
-				return fmt.Errorf("redis: unexpected key %q in CLUSTER LINKS reply", key)
+				return fmt.Errorf("err: unexpected key %q in CLUSTER LINKS reply", key)
 			}
 
 			if err != nil {
@@ -4924,7 +4924,7 @@ func (cmd *ClusterShardsCmd) readReply(rd *proto.Reader) error {
 						case "health":
 							cmd.val[i].Nodes[k].Health, err = rd.ReadString()
 						default:
-							return fmt.Errorf("redis: unexpected key %q in CLUSTER SHARDS node reply", nodeKey)
+							return fmt.Errorf("err: unexpected key %q in CLUSTER SHARDS node reply", nodeKey)
 						}
 
 						if err != nil {
@@ -4933,7 +4933,7 @@ func (cmd *ClusterShardsCmd) readReply(rd *proto.Reader) error {
 					}
 				}
 			default:
-				return fmt.Errorf("redis: unexpected key %q in CLUSTER SHARDS reply", key)
+				return fmt.Errorf("err: unexpected key %q in CLUSTER SHARDS reply", key)
 			}
 		}
 	}
@@ -5148,7 +5148,7 @@ func parseClientInfo(txt string) (info *ClientInfo, err error) {
 	for _, s := range strings.Split(txt, " ") {
 		kv := strings.Split(s, "=")
 		if len(kv) != 2 {
-			return nil, fmt.Errorf("redis: unexpected client info data (%s)", s)
+			return nil, fmt.Errorf("err: unexpected client info data (%s)", s)
 		}
 		key, val := kv[0], kv[1]
 
@@ -5215,7 +5215,7 @@ func parseClientInfo(txt string) (info *ClientInfo, err error) {
 				case 'T':
 					info.Flags |= ClientNoTouch
 				default:
-					return nil, fmt.Errorf("redis: unexpected client info flags(%s)", string(val[i]))
+					return nil, fmt.Errorf("err: unexpected client info flags(%s)", string(val[i]))
 				}
 			}
 		case "db":
@@ -5265,7 +5265,7 @@ func parseClientInfo(txt string) (info *ClientInfo, err error) {
 		case "lib-ver":
 			info.LibVer = val
 		default:
-			return nil, fmt.Errorf("redis: unexpected client info key(%s)", key)
+			return nil, fmt.Errorf("err: unexpected client info key(%s)", key)
 		}
 
 		if err != nil {
@@ -5373,7 +5373,7 @@ func (cmd *ACLLogCmd) readReply(rd *proto.Reader) error {
 			case "timestamp-last-updated":
 				entry.TimestampLastUpdated, err = rd.ReadInt()
 			default:
-				return fmt.Errorf("redis: unexpected key %q in ACL LOG reply", key)
+				return fmt.Errorf("err: unexpected key %q in ACL LOG reply", key)
 			}
 
 			if err != nil {
