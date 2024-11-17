@@ -12,7 +12,6 @@ import (
 	"github.com/dicedb/dicedb-go/internal"
 	"github.com/dicedb/dicedb-go/internal/pool"
 	"github.com/dicedb/dicedb-go/internal/proto"
-	"github.com/google/uuid"
 )
 
 // WatchResult represents a message received via WatchConn.
@@ -175,19 +174,6 @@ func (w *WatchConn) Close() error {
 func (w *WatchConn) Watch(ctx context.Context, cmdName string, args ...interface{}) (*WatchResult, error) {
 	w.mu.Lock()
 
-	w.chOnce.Do(func() {
-		w.msgCh = newWatchCommandChannel(w)
-		w.msgCh.initMsgChan()
-	})
-
-	// create a unique watch label for this request
-	watchLabel := uuid.New().String()
-	args = append(args, watchLabel)
-
-	// create a dedicated firstMsgCh for this request
-	firstMsgCh := make(chan *WatchResult, 1)
-	w.msgCh.watchLabelFirstMsgChMap[watchLabel] = firstMsgCh
-
 	// Subscribe to the command
 	err := w.watchCommand(ctx, cmdName, args...)
 	if err != nil {
@@ -202,20 +188,12 @@ func (w *WatchConn) Watch(ctx context.Context, cmdName string, args ...interface
 	w.mu.Unlock()
 
 	// Get the first message synchronously to return it to the user.
-
-	select {
-	case firstMsg, ok := <-firstMsgCh:
-		if !ok {
-			return nil, fmt.Errorf("connection closed before receiving first update")
-		}
-		firstMsg.Command = cmdName // send command back to the user
-		// cleanup
-		close(firstMsgCh)
-		delete(w.msgCh.watchLabelFirstMsgChMap, watchLabel)
-		return firstMsg, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
+	firstMsg, err := w.ReceiveWMessage(ctx)
+	if err != nil {
+		return nil, err
 	}
+
+	return firstMsg, nil
 }
 
 func (w *WatchConn) GetWatch(ctx context.Context, args ...interface{}) (*WatchResult, error) {
@@ -404,17 +382,16 @@ func (w *WatchConn) Channel(opts ...WChannelOption) <-chan *WatchResult {
 		err := fmt.Errorf("err: Channel can't be called after ChannelWithSubscriptions")
 		panic(err)
 	}
-	return w.msgCh.updateCh
+	return w.msgCh.msgCh
 }
 
 // wChannel handles message delivery over a Go channel.
 type wChannel struct {
 	watchCmd *WatchConn
 
-	updateCh chan *WatchResult // channel to receive all updates - first and subsequent
-	ping     chan struct{}
-
-	watchLabelFirstMsgChMap map[string]chan *WatchResult
+	msgCh chan *WatchResult
+	allCh chan interface{}
+	ping  chan struct{}
 
 	chanSize        int
 	chanSendTimeout time.Duration
@@ -519,11 +496,9 @@ func (c *wChannel) initHealthCheck() {
 }
 
 // initMsgChan initializes the message receiving routine.
-// it routes first response to the dedicated channel and subsequent responses to the update channel
 func (c *wChannel) initMsgChan() {
 	ctx := context.TODO()
-	c.updateCh = make(chan *WatchResult, c.chanSize)
-	c.watchLabelFirstMsgChMap = make(map[string]chan *WatchResult)
+	c.msgCh = make(chan *WatchResult, c.chanSize)
 
 	go func() {
 		timer := time.NewTimer(time.Minute)
@@ -534,7 +509,7 @@ func (c *wChannel) initMsgChan() {
 			msg, err := c.watchCmd.Receive(ctx)
 			if err != nil {
 				if errors.Is(err, pool.ErrClosed) {
-					close(c.updateCh)
+					close(c.msgCh)
 					return
 				}
 				if errCount > 0 {
@@ -557,32 +532,8 @@ func (c *wChannel) initMsgChan() {
 				// Ignore.
 			case *WatchResult:
 				timer.Reset(c.chanSendTimeout)
-
-				// route first message to the dedicated channel
-				label, err := uuid.Parse(msg.Command)
-				if err == nil {
-					firstMsgCh := c.watchLabelFirstMsgChMap[label.String()]
-					if firstMsgCh == nil {
-						internal.Logger.Printf(ctx, "redis: first message channel not found for %s", label.String())
-						continue
-					}
-					select {
-					case firstMsgCh <- msg:
-						if !timer.Stop() {
-							<-timer.C
-						}
-					case <-timer.C:
-						internal.Logger.Printf(
-							ctx, "redis: %s channel is full for %s (message is dropped)",
-							c.watchCmd, c.chanSendTimeout)
-					}
-
-					continue
-				}
-
-				// route subsequent messages to the update channel
 				select {
-				case c.updateCh <- msg:
+				case c.msgCh <- msg:
 					if !timer.Stop() {
 						<-timer.C
 					}
@@ -591,7 +542,6 @@ func (c *wChannel) initMsgChan() {
 						ctx, "err: %s channel is full for %s (message is dropped)",
 						c.watchCmd, c.chanSendTimeout)
 				}
-
 			default:
 				internal.Logger.Printf(ctx, "err: unknown message type: %T", msg)
 			}
