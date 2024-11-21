@@ -177,7 +177,7 @@ func (w *WatchConn) Watch(ctx context.Context, cmdName string, args ...interface
 
 	w.chOnce.Do(func() {
 		w.msgCh = newWatchCommandChannel(w)
-		w.msgCh.initMsgChan()
+		w.msgCh.initMsgChan(ctx)
 	})
 	// create a unique watch label for this request
 	watchLabel := uuid.New().String()
@@ -395,7 +395,7 @@ func (w *WatchConn) getContext() context.Context {
 func (w *WatchConn) Channel(opts ...WChannelOption) <-chan *WatchResult {
 	w.chOnce.Do(func() {
 		w.msgCh = newWatchCommandChannel(w, opts...)
-		w.msgCh.initMsgChan()
+		w.msgCh.initMsgChan(context.Background())
 	})
 	if w.msgCh == nil {
 		err := fmt.Errorf("err: Channel can't be called after ChannelWithSubscriptions")
@@ -515,83 +515,75 @@ func (c *wChannel) initHealthCheck() {
 }
 
 // initMsgChan initializes the message receiving routine.
-// it routes first response to the dedicated channel and subsequent responses to the update channel
-func (c *wChannel) initMsgChan() {
-	ctx := context.TODO()
+// It routes the first response to the dedicated channel and subsequent responses to the update channel.
+func (c *wChannel) initMsgChan(ctx context.Context) {
 	c.updateCh = make(chan *WatchResult, c.chanSize)
 	c.watchLabelFirstMsgChMap = make(map[string]chan *WatchResult)
 
-	go func() {
-		timer := time.NewTimer(time.Minute)
-		timer.Stop()
+	go c.receiveMessages(ctx)
+}
 
-		var errCount int
-		for {
-			msg, err := c.watchCmd.Receive(ctx)
-			if err != nil {
-				if errors.Is(err, pool.ErrClosed) {
-					close(c.updateCh)
-					return
-				}
-				if errCount > 0 {
-					time.Sleep(100 * time.Millisecond)
-				}
-				errCount++
-				continue
+// receiveMessages handles incoming messages in a separate goroutine.
+func (c *wChannel) receiveMessages(ctx context.Context) {
+	var errCount int
+
+	for {
+		msg, err := c.watchCmd.Receive(ctx)
+		if err != nil {
+			if errors.Is(err, pool.ErrClosed) {
+				close(c.updateCh)
+				return
 			}
-
-			errCount = 0
-
-			// Any message is as good as a ping.
-			select {
-			case c.ping <- struct{}{}:
-			default:
+			errCount++
+			if errCount > 1 {
+				time.Sleep(100 * time.Millisecond)
 			}
-
-			switch msg := msg.(type) {
-			case *Pong:
-				// Ignore.
-			case *WatchResult:
-				timer.Reset(c.chanSendTimeout)
-
-				// route first message to the dedicated channel
-				label, err := uuid.Parse(msg.Command)
-				if err == nil {
-					firstMsgCh := c.watchLabelFirstMsgChMap[label.String()]
-					if firstMsgCh == nil {
-						internal.Logger.Printf(ctx, "redis: first message channel not found for %s", label.String())
-						continue
-					}
-					select {
-					case firstMsgCh <- msg:
-						if !timer.Stop() {
-							<-timer.C
-						}
-					case <-timer.C:
-						internal.Logger.Printf(
-							ctx, "redis: %s channel is full for %s (message is dropped)",
-							c.watchCmd, c.chanSendTimeout)
-					}
-					continue
-				}
-
-				// route subsequent messages to the update channel
-				select {
-				case c.updateCh <- msg:
-					if !timer.Stop() {
-						<-timer.C
-					}
-				case <-timer.C:
-					internal.Logger.Printf(
-						ctx, "err: %s channel is full for %s (message is dropped)",
-						c.watchCmd, c.chanSendTimeout)
-				}
-
-			default:
-				internal.Logger.Printf(ctx, "err: unknown message type: %T", msg)
-			}
+			continue
 		}
-	}()
+		errCount = 0
+
+		// Any message is as good as a ping.
+		select {
+		case c.ping <- struct{}{}:
+		default:
+		}
+
+		switch msg := msg.(type) {
+		case *Pong:
+			// Ignore pong messages.
+		case *WatchResult:
+			c.handleWatchResult(ctx, msg)
+		default:
+			internal.Logger.Printf(ctx, "error: unknown message type: %T", msg)
+		}
+	}
+}
+
+// handleWatchResult processes WatchResult messages, routing them to the appropriate channels.
+func (c *wChannel) handleWatchResult(ctx context.Context, msg *WatchResult) {
+	// Try to parse msg.Command as a UUID to determine if it's the first message.
+	if label, err := uuid.Parse(msg.Command); err == nil {
+		// It's the first message.
+		firstMsgCh, ok := c.watchLabelFirstMsgChMap[label.String()]
+		if !ok || firstMsgCh == nil {
+			internal.Logger.Printf(ctx, "redis: first message channel not found for %s", label.String())
+			return
+		}
+		// Try to send the message to firstMsgCh with timeout.
+		select {
+		case firstMsgCh <- msg:
+		case <-time.After(c.chanSendTimeout):
+			internal.Logger.Printf(ctx, "redis: channel is full for %s (message is dropped)", c.watchCmd)
+		}
+		return
+	}
+
+	// It's a subsequent message; route it to the update channel.
+	select {
+	case c.updateCh <- msg:
+	case <-time.After(c.chanSendTimeout):
+		internal.Logger.Printf(ctx, "error: channel is full for %s (message is dropped)", c.watchCmd)
+	}
 }
 
 // Unwatch unsubscribes the client from the specified command.
