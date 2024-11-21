@@ -230,13 +230,13 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 
 //var _ = Describe("ClusterClient", func() {
 //	var failover bool
-//	var opt *dicedb.ClusterOptions
-//	var client *dicedb.ClusterClient
+//	var opt *redis.ClusterOptions
+//	var client *redis.ClusterClient
 //
 //	assertClusterClient := func() {
 //		It("should GET/SET/DEL", func() {
 //			err := client.Get(ctx, "A").Err()
-//			Expect(err).To(Equal(dicedb.Nil))
+//			Expect(err).To(Equal(redis.Nil))
 //
 //			err = client.Set(ctx, "A", "VALUE", 0).Err()
 //			Expect(err).NotTo(HaveOccurred())
@@ -294,7 +294,7 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //				Expect(err).NotTo(HaveOccurred())
 //			}
 //
-//			client.ForEachMaster(ctx, func(ctx context.Context, master *dicedb.Client) error {
+//			client.ForEachMaster(ctx, func(ctx context.Context, master *redis.Client) error {
 //				defer GinkgoRecover()
 //				Eventually(func() string {
 //					return master.Info(ctx, "keyspace").Val()
@@ -308,7 +308,7 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //		})
 //
 //		It("distributes keys when using EVAL", func() {
-//			script := dicedb.NewScript(`
+//			script := redis.NewScript(`
 //				local r = redis.call('SET', KEYS[1], ARGV[1])
 //				return r
 //			`)
@@ -320,7 +320,7 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //				Expect(err).NotTo(HaveOccurred())
 //			}
 //
-//			client.ForEachMaster(ctx, func(ctx context.Context, master *dicedb.Client) error {
+//			client.ForEachMaster(ctx, func(ctx context.Context, master *redis.Client) error {
 //				defer GinkgoRecover()
 //				Eventually(func() string {
 //					return master.Info(ctx, "keyspace").Val()
@@ -336,11 +336,11 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //		It("distributes scripts when using Script Load", func() {
 //			client.ScriptFlush(ctx)
 //
-//			script := dicedb.NewScript(`return 'Unique script'`)
+//			script := redis.NewScript(`return 'Unique script'`)
 //
 //			script.Load(ctx, client)
 //
-//			client.ForEachShard(ctx, func(ctx context.Context, shard *dicedb.Client) error {
+//			client.ForEachShard(ctx, func(ctx context.Context, shard *redis.Client) error {
 //				defer GinkgoRecover()
 //
 //				val, _ := script.Exists(ctx, shard).Result()
@@ -352,9 +352,9 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //		It("checks all shards when using Script Exists", func() {
 //			client.ScriptFlush(ctx)
 //
-//			script := dicedb.NewScript(`return 'First script'`)
+//			script := redis.NewScript(`return 'First script'`)
 //			lostScriptSrc := `return 'Lost script'`
-//			lostScript := dicedb.NewScript(lostScriptSrc)
+//			lostScript := redis.NewScript(lostScriptSrc)
 //
 //			script.Load(ctx, client)
 //			client.Do(ctx, "script", "load", lostScriptSrc)
@@ -365,7 +365,7 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //		})
 //
 //		It("flushes scripts from all shards when using ScriptFlush", func() {
-//			script := dicedb.NewScript(`return 'Unnecessary script'`)
+//			script := redis.NewScript(`return 'Unnecessary script'`)
 //			script.Load(ctx, client)
 //
 //			val, _ := client.ScriptExists(ctx, script.Hash()).Result()
@@ -382,19 +382,19 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //
 //			// Transactionally increments key using GET and SET commands.
 //			incr = func(key string) error {
-//				err := client.Watch(ctx, func(tx *dicedb.Tx) error {
+//				err := client.Watch(ctx, func(tx *redis.Tx) error {
 //					n, err := tx.Get(ctx, key).Int64()
-//					if err != nil && err != dicedb.Nil {
+//					if err != nil && err != redis.Nil {
 //						return err
 //					}
 //
-//					_, err = tx.TxPipelined(ctx, func(pipe dicedb.Pipeliner) error {
+//					_, err = tx.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
 //						pipe.Set(ctx, key, strconv.FormatInt(n+1, 10), 0)
 //						return nil
 //					})
 //					return err
 //				}, key)
-//				if err == dicedb.TxFailedErr {
+//				if err == redis.TxFailedErr {
 //					return incr(key)
 //				}
 //				return err
@@ -419,7 +419,7 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //		})
 //
 //		Describe("pipelining", func() {
-//			var pipe *dicedb.Pipeline
+//			var pipe *redis.Pipeline
 //
 //			assertPipeline := func() {
 //				keys := []string{"A", "B", "C", "D", "E", "F", "G"}
@@ -441,7 +441,7 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //					Expect(err).NotTo(HaveOccurred())
 //					Expect(cmds).To(HaveLen(14))
 //
-//					_ = client.ForEachShard(ctx, func(ctx context.Context, node *dicedb.Client) error {
+//					_ = client.ForEachShard(ctx, func(ctx context.Context, node *redis.Client) error {
 //						defer GinkgoRecover()
 //						Eventually(func() int64 {
 //							return node.DBSize(ctx).Val()
@@ -466,10 +466,10 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //					Expect(cmds).To(HaveLen(14))
 //
 //					for i, key := range keys {
-//						get := cmds[i*2].(*dicedb.StringCmd)
+//						get := cmds[i*2].(*redis.StringCmd)
 //						Expect(get.Val()).To(Equal(key + "_value"))
 //
-//						ttl := cmds[(i*2)+1].(*dicedb.DurationCmd)
+//						ttl := cmds[(i*2)+1].(*redis.DurationCmd)
 //						dur := time.Duration(i+1) * time.Hour
 //						Expect(ttl.Val()).To(BeNumerically("~", dur, 30*time.Second))
 //					}
@@ -485,13 +485,13 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //					b := pipe.Get(ctx, "B")
 //					c := pipe.Get(ctx, "C")
 //					cmds, err := pipe.Exec(ctx)
-//					Expect(err).To(Equal(dicedb.Nil))
+//					Expect(err).To(Equal(redis.Nil))
 //					Expect(cmds).To(HaveLen(3))
 //
 //					Expect(a.Err()).NotTo(HaveOccurred())
 //					Expect(a.Val()).To(Equal("A_value"))
 //
-//					Expect(b.Err()).To(Equal(dicedb.Nil))
+//					Expect(b.Err()).To(Equal(redis.Nil))
 //					Expect(b.Val()).To(Equal(""))
 //
 //					Expect(c.Err()).NotTo(HaveOccurred())
@@ -501,7 +501,7 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //
 //			Describe("with Pipeline", func() {
 //				BeforeEach(func() {
-//					pipe = client.Pipeline().(*dicedb.Pipeline)
+//					pipe = client.Pipeline().(*redis.Pipeline)
 //				})
 //
 //				AfterEach(func() {})
@@ -511,7 +511,7 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //
 //			Describe("with TxPipeline", func() {
 //				BeforeEach(func() {
-//					pipe = client.TxPipeline().(*dicedb.Pipeline)
+//					pipe = client.TxPipeline().(*redis.Pipeline)
 //				})
 //
 //				AfterEach(func() {})
@@ -535,7 +535,7 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //					return err
 //				}
 //
-//				_, ok := msg.(*dicedb.Message)
+//				_, ok := msg.(*redis.Message)
 //				if !ok {
 //					return fmt.Errorf("got %T, wanted *redis.Message", msg)
 //				}
@@ -559,7 +559,7 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //					return err
 //				}
 //
-//				_, ok := msg.(*dicedb.Message)
+//				_, ok := msg.(*redis.Message)
 //				if !ok {
 //					return fmt.Errorf("got %T, wanted *redis.Message", msg)
 //				}
@@ -583,21 +583,21 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //			opt.Protocol = 2
 //			client = cluster.newClusterClient(ctx, opt)
 //
-//			err := client.ForEachMaster(ctx, func(ctx context.Context, master *dicedb.Client) error {
+//			err := client.ForEachMaster(ctx, func(ctx context.Context, master *redis.Client) error {
 //				return master.FlushDB(ctx).Err()
 //			})
 //			Expect(err).NotTo(HaveOccurred())
 //		})
 //
 //		AfterEach(func() {
-//			_ = client.ForEachMaster(ctx, func(ctx context.Context, master *dicedb.Client) error {
+//			_ = client.ForEachMaster(ctx, func(ctx context.Context, master *redis.Client) error {
 //				return master.FlushDB(ctx).Err()
 //			})
 //			Expect(client.Close()).NotTo(HaveOccurred())
 //		})
 //
 //		It("should CLUSTER PROTO 2", func() {
-//			_ = client.ForEachShard(ctx, func(ctx context.Context, c *dicedb.Client) error {
+//			_ = client.ForEachShard(ctx, func(ctx context.Context, c *redis.Client) error {
 //				val, err := c.Do(ctx, "HELLO").Result()
 //				Expect(err).NotTo(HaveOccurred())
 //				Expect(val).Should(ContainElements("proto", int64(2)))
@@ -612,14 +612,14 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //			opt.ClientName = "cluster_hi"
 //			client = cluster.newClusterClient(ctx, opt)
 //
-//			err := client.ForEachMaster(ctx, func(ctx context.Context, master *dicedb.Client) error {
+//			err := client.ForEachMaster(ctx, func(ctx context.Context, master *redis.Client) error {
 //				return master.FlushDB(ctx).Err()
 //			})
 //			Expect(err).NotTo(HaveOccurred())
 //		})
 //
 //		AfterEach(func() {
-//			_ = client.ForEachMaster(ctx, func(ctx context.Context, master *dicedb.Client) error {
+//			_ = client.ForEachMaster(ctx, func(ctx context.Context, master *redis.Client) error {
 //				return master.FlushDB(ctx).Err()
 //			})
 //			Expect(client.Close()).NotTo(HaveOccurred())
@@ -627,7 +627,7 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //
 //		It("returns pool stats", func() {
 //			stats := client.PoolStats()
-//			Expect(stats).To(BeAssignableToTypeOf(&dicedb.PoolStats{}))
+//			Expect(stats).To(BeAssignableToTypeOf(&redis.PoolStats{}))
 //		})
 //
 //		It("returns an error when there are no attempts left", func() {
@@ -640,6 +640,32 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //			}, 30*time.Second).ShouldNot(HaveOccurred())
 //
 //			err := client.Get(ctx, "A").Err()
+//			Expect(err).To(HaveOccurred())
+//			Expect(err.Error()).To(ContainSubstring("MOVED"))
+//
+//			Expect(client.Close()).NotTo(HaveOccurred())
+//		})
+//
+//		It("determines hash slots correctly for generic commands", func() {
+//			opt := redisClusterOptions()
+//			opt.MaxRedirects = -1
+//			client := cluster.newClusterClient(ctx, opt)
+//
+//			err := client.Do(ctx, "GET", "A").Err()
+//			Expect(err).To(Equal(redis.Nil))
+//
+//			err = client.Do(ctx, []byte("GET"), []byte("A")).Err()
+//			Expect(err).To(Equal(redis.Nil))
+//
+//			Eventually(func() error {
+//				return client.SwapNodes(ctx, "A")
+//			}, 30*time.Second).ShouldNot(HaveOccurred())
+//
+//			err = client.Do(ctx, "GET", "A").Err()
+//			Expect(err).To(HaveOccurred())
+//			Expect(err.Error()).To(ContainSubstring("MOVED"))
+//
+//			err = client.Do(ctx, []byte("GET"), []byte("A")).Err()
 //			Expect(err).To(HaveOccurred())
 //			Expect(err.Error()).To(ContainSubstring("MOVED"))
 //
@@ -677,7 +703,7 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //				Expect(client.Set(ctx, strconv.Itoa(i), "", 0).Err()).NotTo(HaveOccurred())
 //			}
 //
-//			err := client.ForEachMaster(ctx, func(ctx context.Context, master *dicedb.Client) error {
+//			err := client.ForEachMaster(ctx, func(ctx context.Context, master *redis.Client) error {
 //				return master.FlushDB(ctx).Err()
 //			})
 //			Expect(err).NotTo(HaveOccurred())
@@ -692,10 +718,10 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //			Expect(err).NotTo(HaveOccurred())
 //			Expect(res).To(HaveLen(3))
 //
-//			wanted := []dicedb.ClusterSlot{{
+//			wanted := []redis.ClusterSlot{{
 //				Start: 0,
 //				End:   4999,
-//				Nodes: []dicedb.ClusterNode{{
+//				Nodes: []redis.ClusterNode{{
 //					ID:   "",
 //					Addr: "127.0.0.1:8220",
 //				}, {
@@ -705,7 +731,7 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //			}, {
 //				Start: 5000,
 //				End:   9999,
-//				Nodes: []dicedb.ClusterNode{{
+//				Nodes: []redis.ClusterNode{{
 //					ID:   "",
 //					Addr: "127.0.0.1:8221",
 //				}, {
@@ -715,7 +741,7 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //			}, {
 //				Start: 10000,
 //				End:   16383,
-//				Nodes: []dicedb.ClusterNode{{
+//				Nodes: []redis.ClusterNode{{
 //					ID:   "",
 //					Addr: "127.0.0.1:8222",
 //				}, {
@@ -782,12 +808,12 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //		})
 //
 //		It("should cluster client setname", func() {
-//			err := client.ForEachShard(ctx, func(ctx context.Context, c *dicedb.Client) error {
+//			err := client.ForEachShard(ctx, func(ctx context.Context, c *redis.Client) error {
 //				return c.Ping(ctx).Err()
 //			})
 //			Expect(err).NotTo(HaveOccurred())
 //
-//			_ = client.ForEachShard(ctx, func(ctx context.Context, c *dicedb.Client) error {
+//			_ = client.ForEachShard(ctx, func(ctx context.Context, c *redis.Client) error {
 //				val, err := c.ClientList(ctx).Result()
 //				Expect(err).NotTo(HaveOccurred())
 //				Expect(val).Should(ContainSubstring("name=cluster_hi"))
@@ -796,7 +822,7 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //		})
 //
 //		It("should CLUSTER PROTO 3", func() {
-//			_ = client.ForEachShard(ctx, func(ctx context.Context, c *dicedb.Client) error {
+//			_ = client.ForEachShard(ctx, func(ctx context.Context, c *redis.Client) error {
 //				val, err := c.Do(ctx, "HELLO").Result()
 //				Expect(err).NotTo(HaveOccurred())
 //				Expect(val).Should(HaveKeyWithValue("proto", int64(3)))
@@ -892,7 +918,7 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //			err := client.Ping(ctx).Err()
 //			Expect(err).NotTo(HaveOccurred())
 //
-//			err = client.ForEachShard(ctx, func(ctx context.Context, node *dicedb.Client) error {
+//			err = client.ForEachShard(ctx, func(ctx context.Context, node *redis.Client) error {
 //				return node.Ping(ctx).Err()
 //			})
 //			Expect(err).NotTo(HaveOccurred())
@@ -900,8 +926,8 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //			var stack []string
 //
 //			clusterHook := &hook{
-//				processHook: func(hook dicedb.ProcessHook) dicedb.ProcessHook {
-//					return func(ctx context.Context, cmd dicedb.Cmder) error {
+//				processHook: func(hook redis.ProcessHook) redis.ProcessHook {
+//					return func(ctx context.Context, cmd redis.Cmder) error {
 //						select {
 //						case <-testCtx.Done():
 //							return hook(ctx, cmd)
@@ -923,8 +949,8 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //			client.AddHook(clusterHook)
 //
 //			nodeHook := &hook{
-//				processHook: func(hook dicedb.ProcessHook) dicedb.ProcessHook {
-//					return func(ctx context.Context, cmd dicedb.Cmder) error {
+//				processHook: func(hook redis.ProcessHook) redis.ProcessHook {
+//					return func(ctx context.Context, cmd redis.Cmder) error {
 //						select {
 //						case <-testCtx.Done():
 //							return hook(ctx, cmd)
@@ -944,7 +970,7 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //				},
 //			}
 //
-//			_ = client.ForEachShard(ctx, func(ctx context.Context, node *dicedb.Client) error {
+//			_ = client.ForEachShard(ctx, func(ctx context.Context, node *redis.Client) error {
 //				node.AddHook(nodeHook)
 //				return nil
 //			})
@@ -963,7 +989,7 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //			err := client.Ping(ctx).Err()
 //			Expect(err).NotTo(HaveOccurred())
 //
-//			err = client.ForEachShard(ctx, func(ctx context.Context, node *dicedb.Client) error {
+//			err = client.ForEachShard(ctx, func(ctx context.Context, node *redis.Client) error {
 //				return node.Ping(ctx).Err()
 //			})
 //			Expect(err).NotTo(HaveOccurred())
@@ -971,8 +997,8 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //			var stack []string
 //
 //			client.AddHook(&hook{
-//				processPipelineHook: func(hook dicedb.ProcessPipelineHook) dicedb.ProcessPipelineHook {
-//					return func(ctx context.Context, cmds []dicedb.Cmder) error {
+//				processPipelineHook: func(hook redis.ProcessPipelineHook) redis.ProcessPipelineHook {
+//					return func(ctx context.Context, cmds []redis.Cmder) error {
 //						Expect(cmds).To(HaveLen(1))
 //						Expect(cmds[0].String()).To(Equal("ping: "))
 //						stack = append(stack, "cluster.BeforeProcessPipeline")
@@ -988,10 +1014,10 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //				},
 //			})
 //
-//			_ = client.ForEachShard(ctx, func(ctx context.Context, node *dicedb.Client) error {
+//			_ = client.ForEachShard(ctx, func(ctx context.Context, node *redis.Client) error {
 //				node.AddHook(&hook{
-//					processPipelineHook: func(hook dicedb.ProcessPipelineHook) dicedb.ProcessPipelineHook {
-//						return func(ctx context.Context, cmds []dicedb.Cmder) error {
+//					processPipelineHook: func(hook redis.ProcessPipelineHook) redis.ProcessPipelineHook {
+//						return func(ctx context.Context, cmds []redis.Cmder) error {
 //							Expect(cmds).To(HaveLen(1))
 //							Expect(cmds[0].String()).To(Equal("ping: "))
 //							stack = append(stack, "shard.BeforeProcessPipeline")
@@ -1009,7 +1035,7 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //				return nil
 //			})
 //
-//			_, err = client.Pipelined(ctx, func(pipe dicedb.Pipeliner) error {
+//			_, err = client.Pipelined(ctx, func(pipe redis.Pipeliner) error {
 //				pipe.Ping(ctx)
 //				return nil
 //			})
@@ -1026,7 +1052,7 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //			err := client.Ping(ctx).Err()
 //			Expect(err).NotTo(HaveOccurred())
 //
-//			err = client.ForEachShard(ctx, func(ctx context.Context, node *dicedb.Client) error {
+//			err = client.ForEachShard(ctx, func(ctx context.Context, node *redis.Client) error {
 //				return node.Ping(ctx).Err()
 //			})
 //			Expect(err).NotTo(HaveOccurred())
@@ -1034,8 +1060,8 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //			var stack []string
 //
 //			client.AddHook(&hook{
-//				processPipelineHook: func(hook dicedb.ProcessPipelineHook) dicedb.ProcessPipelineHook {
-//					return func(ctx context.Context, cmds []dicedb.Cmder) error {
+//				processPipelineHook: func(hook redis.ProcessPipelineHook) redis.ProcessPipelineHook {
+//					return func(ctx context.Context, cmds []redis.Cmder) error {
 //						Expect(cmds).To(HaveLen(3))
 //						Expect(cmds[1].String()).To(Equal("ping: "))
 //						stack = append(stack, "cluster.BeforeProcessPipeline")
@@ -1051,10 +1077,10 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //				},
 //			})
 //
-//			_ = client.ForEachShard(ctx, func(ctx context.Context, node *dicedb.Client) error {
+//			_ = client.ForEachShard(ctx, func(ctx context.Context, node *redis.Client) error {
 //				node.AddHook(&hook{
-//					processPipelineHook: func(hook dicedb.ProcessPipelineHook) dicedb.ProcessPipelineHook {
-//						return func(ctx context.Context, cmds []dicedb.Cmder) error {
+//					processPipelineHook: func(hook redis.ProcessPipelineHook) redis.ProcessPipelineHook {
+//						return func(ctx context.Context, cmds []redis.Cmder) error {
 //							Expect(cmds).To(HaveLen(3))
 //							Expect(cmds[1].String()).To(Equal("ping: "))
 //							stack = append(stack, "shard.BeforeProcessPipeline")
@@ -1072,7 +1098,7 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //				return nil
 //			})
 //
-//			_, err = client.TxPipelined(ctx, func(pipe dicedb.Pipeliner) error {
+//			_, err = client.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
 //				pipe.Ping(ctx)
 //				return nil
 //			})
@@ -1108,12 +1134,12 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //			opt.RouteByLatency = true
 //			client = cluster.newClusterClient(ctx, opt)
 //
-//			err := client.ForEachMaster(ctx, func(ctx context.Context, master *dicedb.Client) error {
+//			err := client.ForEachMaster(ctx, func(ctx context.Context, master *redis.Client) error {
 //				return master.FlushDB(ctx).Err()
 //			})
 //			Expect(err).NotTo(HaveOccurred())
 //
-//			err = client.ForEachSlave(ctx, func(ctx context.Context, slave *dicedb.Client) error {
+//			err = client.ForEachSlave(ctx, func(ctx context.Context, slave *redis.Client) error {
 //				Eventually(func() int64 {
 //					return client.DBSize(ctx).Val()
 //				}, 30*time.Second).Should(Equal(int64(0)))
@@ -1123,7 +1149,7 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //		})
 //
 //		AfterEach(func() {
-//			err := client.ForEachSlave(ctx, func(ctx context.Context, slave *dicedb.Client) error {
+//			err := client.ForEachSlave(ctx, func(ctx context.Context, slave *redis.Client) error {
 //				return slave.ReadWrite(ctx).Err()
 //			})
 //			Expect(err).NotTo(HaveOccurred())
@@ -1140,23 +1166,23 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //			failover = true
 //
 //			opt = redisClusterOptions()
-//			opt.ClusterSlots = func(ctx context.Context) ([]dicedb.ClusterSlot, error) {
-//				slots := []dicedb.ClusterSlot{{
+//			opt.ClusterSlots = func(ctx context.Context) ([]redis.ClusterSlot, error) {
+//				slots := []redis.ClusterSlot{{
 //					Start: 0,
 //					End:   4999,
-//					Nodes: []dicedb.ClusterNode{{
+//					Nodes: []redis.ClusterNode{{
 //						Addr: ":" + ringShard1Port,
 //					}},
 //				}, {
 //					Start: 5000,
 //					End:   9999,
-//					Nodes: []dicedb.ClusterNode{{
+//					Nodes: []redis.ClusterNode{{
 //						Addr: ":" + ringShard2Port,
 //					}},
 //				}, {
 //					Start: 10000,
 //					End:   16383,
-//					Nodes: []dicedb.ClusterNode{{
+//					Nodes: []redis.ClusterNode{{
 //						Addr: ":" + ringShard3Port,
 //					}},
 //				}}
@@ -1164,12 +1190,12 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //			}
 //			client = cluster.newClusterClient(ctx, opt)
 //
-//			err := client.ForEachMaster(ctx, func(ctx context.Context, master *dicedb.Client) error {
+//			err := client.ForEachMaster(ctx, func(ctx context.Context, master *redis.Client) error {
 //				return master.FlushDB(ctx).Err()
 //			})
 //			Expect(err).NotTo(HaveOccurred())
 //
-//			err = client.ForEachSlave(ctx, func(ctx context.Context, slave *dicedb.Client) error {
+//			err = client.ForEachSlave(ctx, func(ctx context.Context, slave *redis.Client) error {
 //				Eventually(func() int64 {
 //					return client.DBSize(ctx).Val()
 //				}, 30*time.Second).Should(Equal(int64(0)))
@@ -1194,23 +1220,23 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //
 //			opt = redisClusterOptions()
 //			opt.RouteRandomly = true
-//			opt.ClusterSlots = func(ctx context.Context) ([]dicedb.ClusterSlot, error) {
-//				slots := []dicedb.ClusterSlot{{
+//			opt.ClusterSlots = func(ctx context.Context) ([]redis.ClusterSlot, error) {
+//				slots := []redis.ClusterSlot{{
 //					Start: 0,
 //					End:   4999,
-//					Nodes: []dicedb.ClusterNode{{
+//					Nodes: []redis.ClusterNode{{
 //						Addr: ":" + ringShard1Port,
 //					}},
 //				}, {
 //					Start: 5000,
 //					End:   9999,
-//					Nodes: []dicedb.ClusterNode{{
+//					Nodes: []redis.ClusterNode{{
 //						Addr: ":" + ringShard2Port,
 //					}},
 //				}, {
 //					Start: 10000,
 //					End:   16383,
-//					Nodes: []dicedb.ClusterNode{{
+//					Nodes: []redis.ClusterNode{{
 //						Addr: ":" + ringShard3Port,
 //					}},
 //				}}
@@ -1218,12 +1244,12 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //			}
 //			client = cluster.newClusterClient(ctx, opt)
 //
-//			err := client.ForEachMaster(ctx, func(ctx context.Context, master *dicedb.Client) error {
+//			err := client.ForEachMaster(ctx, func(ctx context.Context, master *redis.Client) error {
 //				return master.FlushDB(ctx).Err()
 //			})
 //			Expect(err).NotTo(HaveOccurred())
 //
-//			err = client.ForEachSlave(ctx, func(ctx context.Context, slave *dicedb.Client) error {
+//			err = client.ForEachSlave(ctx, func(ctx context.Context, slave *redis.Client) error {
 //				Eventually(func() int64 {
 //					return client.DBSize(ctx).Val()
 //				}, 30*time.Second).Should(Equal(int64(0)))
@@ -1248,11 +1274,11 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //
 //			opt = redisClusterOptions()
 //			opt.ReadOnly = true
-//			opt.ClusterSlots = func(ctx context.Context) ([]dicedb.ClusterSlot, error) {
-//				slots := []dicedb.ClusterSlot{{
+//			opt.ClusterSlots = func(ctx context.Context) ([]redis.ClusterSlot, error) {
+//				slots := []redis.ClusterSlot{{
 //					Start: 0,
 //					End:   4999,
-//					Nodes: []dicedb.ClusterNode{{
+//					Nodes: []redis.ClusterNode{{
 //						Addr: ":8220",
 //					}, {
 //						Addr: ":8223",
@@ -1260,7 +1286,7 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //				}, {
 //					Start: 5000,
 //					End:   9999,
-//					Nodes: []dicedb.ClusterNode{{
+//					Nodes: []redis.ClusterNode{{
 //						Addr: ":8221",
 //					}, {
 //						Addr: ":8224",
@@ -1268,7 +1294,7 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //				}, {
 //					Start: 10000,
 //					End:   16383,
-//					Nodes: []dicedb.ClusterNode{{
+//					Nodes: []redis.ClusterNode{{
 //						Addr: ":8222",
 //					}, {
 //						Addr: ":8225",
@@ -1278,12 +1304,12 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //			}
 //			client = cluster.newClusterClient(ctx, opt)
 //
-//			err := client.ForEachMaster(ctx, func(ctx context.Context, master *dicedb.Client) error {
+//			err := client.ForEachMaster(ctx, func(ctx context.Context, master *redis.Client) error {
 //				return master.FlushDB(ctx).Err()
 //			})
 //			Expect(err).NotTo(HaveOccurred())
 //
-//			err = client.ForEachSlave(ctx, func(ctx context.Context, slave *dicedb.Client) error {
+//			err = client.ForEachSlave(ctx, func(ctx context.Context, slave *redis.Client) error {
 //				Eventually(func() int64 {
 //					return client.DBSize(ctx).Val()
 //				}, 30*time.Second).Should(Equal(int64(0)))
@@ -1304,10 +1330,10 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //})
 //
 //var _ = Describe("ClusterClient without nodes", func() {
-//	var client *dicedb.ClusterClient
+//	var client *redis.ClusterClient
 //
 //	BeforeEach(func() {
-//		client = dicedb.NewClusterClient(&dicedb.ClusterOptions{})
+//		client = redis.NewClusterClient(&redis.ClusterOptions{})
 //	})
 //
 //	AfterEach(func() {
@@ -1316,23 +1342,23 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //
 //	It("Ping returns an error", func() {
 //		err := client.Ping(ctx).Err()
-//		Expect(err).To(MatchError("err: cluster has no nodes"))
+//		Expect(err).To(MatchError("redis: cluster has no nodes"))
 //	})
 //
 //	It("pipeline returns an error", func() {
-//		_, err := client.Pipelined(ctx, func(pipe dicedb.Pipeliner) error {
+//		_, err := client.Pipelined(ctx, func(pipe redis.Pipeliner) error {
 //			pipe.Ping(ctx)
 //			return nil
 //		})
-//		Expect(err).To(MatchError("err: cluster has no nodes"))
+//		Expect(err).To(MatchError("redis: cluster has no nodes"))
 //	})
 //})
 //
 //var _ = Describe("ClusterClient without valid nodes", func() {
-//	var client *dicedb.ClusterClient
+//	var client *redis.ClusterClient
 //
 //	BeforeEach(func() {
-//		client = dicedb.NewClusterClient(&dicedb.ClusterOptions{
+//		client = redis.NewClusterClient(&redis.ClusterOptions{
 //			Addrs: []string{redisAddr},
 //		})
 //	})
@@ -1347,7 +1373,7 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //	})
 //
 //	It("pipeline returns an error", func() {
-//		_, err := client.Pipelined(ctx, func(pipe dicedb.Pipeliner) error {
+//		_, err := client.Pipelined(ctx, func(pipe redis.Pipeliner) error {
 //			pipe.Ping(ctx)
 //			return nil
 //		})
@@ -1356,7 +1382,7 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //})
 //
 //var _ = Describe("ClusterClient with unavailable Cluster", func() {
-//	var client *dicedb.ClusterClient
+//	var client *redis.ClusterClient
 //
 //	BeforeEach(func() {
 //		opt := redisClusterOptions()
@@ -1387,7 +1413,7 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //})
 //
 //var _ = Describe("ClusterClient timeout", func() {
-//	var client *dicedb.ClusterClient
+//	var client *redis.ClusterClient
 //
 //	AfterEach(func() {
 //		_ = client.Close()
@@ -1401,7 +1427,7 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //		})
 //
 //		It("Pipeline timeouts", func() {
-//			_, err := client.Pipelined(ctx, func(pipe dicedb.Pipeliner) error {
+//			_, err := client.Pipelined(ctx, func(pipe redis.Pipeliner) error {
 //				pipe.Ping(ctx)
 //				return nil
 //			})
@@ -1410,7 +1436,7 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //		})
 //
 //		It("Tx timeouts", func() {
-//			err := client.Watch(ctx, func(tx *dicedb.Tx) error {
+//			err := client.Watch(ctx, func(tx *redis.Tx) error {
 //				return tx.Ping(ctx).Err()
 //			}, "foo")
 //			Expect(err).To(HaveOccurred())
@@ -1418,8 +1444,8 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //		})
 //
 //		It("Tx Pipeline timeouts", func() {
-//			err := client.Watch(ctx, func(tx *dicedb.Tx) error {
-//				_, err := tx.TxPipelined(ctx, func(pipe dicedb.Pipeliner) error {
+//			err := client.Watch(ctx, func(tx *redis.Tx) error {
+//				_, err := tx.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
 //					pipe.Ping(ctx)
 //					return nil
 //				})
@@ -1437,7 +1463,7 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //			opt := redisClusterOptions()
 //			client = cluster.newClusterClient(ctx, opt)
 //
-//			err := client.ForEachShard(ctx, func(ctx context.Context, client *dicedb.Client) error {
+//			err := client.ForEachShard(ctx, func(ctx context.Context, client *redis.Client) error {
 //				err := client.ClientPause(ctx, pause).Err()
 //
 //				opt := client.Options()
@@ -1455,7 +1481,7 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //		})
 //
 //		AfterEach(func() {
-//			_ = client.ForEachShard(ctx, func(ctx context.Context, client *dicedb.Client) error {
+//			_ = client.ForEachShard(ctx, func(ctx context.Context, client *redis.Client) error {
 //				defer GinkgoRecover()
 //
 //				opt := client.Options()
@@ -1480,104 +1506,104 @@ func slotEqual(s1, s2 dicedb.ClusterSlot) bool {
 //	cases := []struct {
 //		test string
 //		url  string
-//		o    *dicedb.ClusterOptions // expected value
+//		o    *redis.ClusterOptions // expected value
 //		err  error
 //	}{
 //		{
 //			test: "ParseRedisURL",
 //			url:  "redis://localhost:123",
-//			o:    &dicedb.ClusterOptions{Addrs: []string{"localhost:123"}},
+//			o:    &redis.ClusterOptions{Addrs: []string{"localhost:123"}},
 //		}, {
 //			test: "ParseRedissURL",
 //			url:  "rediss://localhost:123",
-//			o:    &dicedb.ClusterOptions{Addrs: []string{"localhost:123"}, TLSConfig: &tls.Config{ServerName: "localhost"}},
+//			o:    &redis.ClusterOptions{Addrs: []string{"localhost:123"}, TLSConfig: &tls.Config{ServerName: "localhost"}},
 //		}, {
 //			test: "MissingRedisPort",
 //			url:  "redis://localhost",
-//			o:    &dicedb.ClusterOptions{Addrs: []string{"localhost:6379"}},
+//			o:    &redis.ClusterOptions{Addrs: []string{"localhost:6379"}},
 //		}, {
 //			test: "MissingRedissPort",
 //			url:  "rediss://localhost",
-//			o:    &dicedb.ClusterOptions{Addrs: []string{"localhost:6379"}, TLSConfig: &tls.Config{ServerName: "localhost"}},
+//			o:    &redis.ClusterOptions{Addrs: []string{"localhost:6379"}, TLSConfig: &tls.Config{ServerName: "localhost"}},
 //		}, {
 //			test: "MultipleRedisURLs",
 //			url:  "redis://localhost:123?addr=localhost:1234&addr=localhost:12345",
-//			o:    &dicedb.ClusterOptions{Addrs: []string{"localhost:123", "localhost:1234", "localhost:12345"}},
+//			o:    &redis.ClusterOptions{Addrs: []string{"localhost:123", "localhost:1234", "localhost:12345"}},
 //		}, {
 //			test: "MultipleRedissURLs",
 //			url:  "rediss://localhost:123?addr=localhost:1234&addr=localhost:12345",
-//			o:    &dicedb.ClusterOptions{Addrs: []string{"localhost:123", "localhost:1234", "localhost:12345"}, TLSConfig: &tls.Config{ServerName: "localhost"}},
+//			o:    &redis.ClusterOptions{Addrs: []string{"localhost:123", "localhost:1234", "localhost:12345"}, TLSConfig: &tls.Config{ServerName: "localhost"}},
 //		}, {
 //			test: "OnlyPassword",
 //			url:  "redis://:bar@localhost:123",
-//			o:    &dicedb.ClusterOptions{Addrs: []string{"localhost:123"}, Password: "bar"},
+//			o:    &redis.ClusterOptions{Addrs: []string{"localhost:123"}, Password: "bar"},
 //		}, {
 //			test: "OnlyUser",
 //			url:  "redis://foo@localhost:123",
-//			o:    &dicedb.ClusterOptions{Addrs: []string{"localhost:123"}, Username: "foo"},
+//			o:    &redis.ClusterOptions{Addrs: []string{"localhost:123"}, Username: "foo"},
 //		}, {
 //			test: "RedisUsernamePassword",
 //			url:  "redis://foo:bar@localhost:123",
-//			o:    &dicedb.ClusterOptions{Addrs: []string{"localhost:123"}, Username: "foo", Password: "bar"},
+//			o:    &redis.ClusterOptions{Addrs: []string{"localhost:123"}, Username: "foo", Password: "bar"},
 //		}, {
 //			test: "RedissUsernamePassword",
 //			url:  "rediss://foo:bar@localhost:123?addr=localhost:1234",
-//			o:    &dicedb.ClusterOptions{Addrs: []string{"localhost:123", "localhost:1234"}, Username: "foo", Password: "bar", TLSConfig: &tls.Config{ServerName: "localhost"}},
+//			o:    &redis.ClusterOptions{Addrs: []string{"localhost:123", "localhost:1234"}, Username: "foo", Password: "bar", TLSConfig: &tls.Config{ServerName: "localhost"}},
 //		}, {
 //			test: "QueryParameters",
 //			url:  "redis://localhost:123?read_timeout=2&pool_fifo=true&addr=localhost:1234",
-//			o:    &dicedb.ClusterOptions{Addrs: []string{"localhost:123", "localhost:1234"}, ReadTimeout: 2 * time.Second, PoolFIFO: true},
+//			o:    &redis.ClusterOptions{Addrs: []string{"localhost:123", "localhost:1234"}, ReadTimeout: 2 * time.Second, PoolFIFO: true},
 //		}, {
 //			test: "DisabledTimeout",
 //			url:  "redis://localhost:123?conn_max_idle_time=0",
-//			o:    &dicedb.ClusterOptions{Addrs: []string{"localhost:123"}, ConnMaxIdleTime: -1},
+//			o:    &redis.ClusterOptions{Addrs: []string{"localhost:123"}, ConnMaxIdleTime: -1},
 //		}, {
 //			test: "DisabledTimeoutNeg",
 //			url:  "redis://localhost:123?conn_max_idle_time=-1",
-//			o:    &dicedb.ClusterOptions{Addrs: []string{"localhost:123"}, ConnMaxIdleTime: -1},
+//			o:    &redis.ClusterOptions{Addrs: []string{"localhost:123"}, ConnMaxIdleTime: -1},
 //		}, {
 //			test: "UseDefault",
 //			url:  "redis://localhost:123?conn_max_idle_time=",
-//			o:    &dicedb.ClusterOptions{Addrs: []string{"localhost:123"}, ConnMaxIdleTime: 0},
+//			o:    &redis.ClusterOptions{Addrs: []string{"localhost:123"}, ConnMaxIdleTime: 0},
 //		}, {
 //			test: "Protocol",
 //			url:  "redis://localhost:123?protocol=2",
-//			o:    &dicedb.ClusterOptions{Addrs: []string{"localhost:123"}, Protocol: 2},
+//			o:    &redis.ClusterOptions{Addrs: []string{"localhost:123"}, Protocol: 2},
 //		}, {
 //			test: "ClientName",
 //			url:  "redis://localhost:123?client_name=cluster_hi",
-//			o:    &dicedb.ClusterOptions{Addrs: []string{"localhost:123"}, ClientName: "cluster_hi"},
+//			o:    &redis.ClusterOptions{Addrs: []string{"localhost:123"}, ClientName: "cluster_hi"},
 //		}, {
 //			test: "UseDefaultMissing=",
 //			url:  "redis://localhost:123?conn_max_idle_time",
-//			o:    &dicedb.ClusterOptions{Addrs: []string{"localhost:123"}, ConnMaxIdleTime: 0},
+//			o:    &redis.ClusterOptions{Addrs: []string{"localhost:123"}, ConnMaxIdleTime: 0},
 //		}, {
 //			test: "InvalidQueryAddr",
 //			url:  "rediss://foo:bar@localhost:123?addr=rediss://foo:barr@localhost:1234",
-//			err:  errors.New(`err: unable to parse addr param: rediss://foo:barr@localhost:1234`),
+//			err:  errors.New(`redis: unable to parse addr param: rediss://foo:barr@localhost:1234`),
 //		}, {
 //			test: "InvalidInt",
 //			url:  "redis://localhost?pool_size=five",
-//			err:  errors.New(`err: invalid pool_size number: strconv.Atoi: parsing "five": invalid syntax`),
+//			err:  errors.New(`redis: invalid pool_size number: strconv.Atoi: parsing "five": invalid syntax`),
 //		}, {
 //			test: "InvalidBool",
 //			url:  "redis://localhost?pool_fifo=yes",
-//			err:  errors.New(`err: invalid pool_fifo boolean: expected true/false/1/0 or an empty string, got "yes"`),
+//			err:  errors.New(`redis: invalid pool_fifo boolean: expected true/false/1/0 or an empty string, got "yes"`),
 //		}, {
 //			test: "UnknownParam",
 //			url:  "redis://localhost?abc=123",
-//			err:  errors.New("err: unexpected option: abc"),
+//			err:  errors.New("redis: unexpected option: abc"),
 //		}, {
 //			test: "InvalidScheme",
 //			url:  "https://google.com",
-//			err:  errors.New("err: invalid URL scheme: https"),
+//			err:  errors.New("redis: invalid URL scheme: https"),
 //		},
 //	}
 //
 //	It("match ParseClusterURL", func() {
 //		for i := range cases {
 //			tc := cases[i]
-//			actual, err := dicedb.ParseClusterURL(tc.url)
+//			actual, err := redis.ParseClusterURL(tc.url)
 //			if tc.err != nil {
 //				Expect(err).Should(MatchError(tc.err))
 //			} else {

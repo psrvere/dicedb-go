@@ -39,12 +39,12 @@ import (
    "fmt"
    "log"
 
-   dice "github.com/dicedb/dicedb-go"
+   "github.com/dicedb/dicedb-go"
 )
 
 func main() {
    // Create a new DiceDB client
-   client := dice.NewClient(&dice.Options{
+   client := dicedb.NewClient(&dicedb.Options{
       Addr:     "localhost:7379", // Replace with your DiceDB server address
       Password: "",               // No password set
       DB:       0,                // Use default DB
