@@ -314,14 +314,20 @@ func parseZRangeResult(data interface{}) (interface{}, error) {
 		return []string{}, nil
 	}
 
-	// Check if we have scores by examining data structure
-	// If data has even length and alternate elements can be parsed as floats,
-	// we treat it as WITHSCORES result
-	hasScores := false
-	if len(dataList) > 1 {
-		if scoreStr, ok := dataList[1].(string); ok {
-			if _, err := strconv.ParseFloat(scoreStr, 64); err == nil {
-				hasScores = true
+	// Check if we have scores by examining ALL potential score positions
+	// Only consider it a WITHSCORES result if all even-indexed elements are valid floats
+	hasScores := len(dataList) > 1 && len(dataList)%2 == 0 // must have even number of elements
+	if hasScores {
+		// Check every alternate position (potential score positions)
+		for i := 1; i < len(dataList); i += 2 {
+			scoreStr, ok := dataList[i].(string)
+			if !ok {
+				hasScores = false
+				break
+			}
+			if _, err := strconv.ParseFloat(scoreStr, 64); err != nil {
+				hasScores = false
+				break
 			}
 		}
 	}
